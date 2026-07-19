@@ -3,11 +3,55 @@
 import React, { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import { Clock } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 export default function VerifyEmailPage() {
   const [otp, setOtp] = useState<string[]>(new Array(6).fill(""));
   const [timeLeft, setTimeLeft] = useState(59); // সেকেন্ডস
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email")?.trim() || "";
+
+  const verifyMutation = useMutation({
+    mutationFn: async (body: { email: string; otp: string }) => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/auth/verify`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) {
+        throw new Error(data?.message || "OTP verification failed");
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(data?.message || "Email verified successfully");
+      router.push(`/change-password?email=${encodeURIComponent(email)}`);
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const resendMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) throw new Error(data?.message || "Failed to resend OTP");
+      return data;
+    },
+    onSuccess: (data) => {
+      setTimeLeft(59);
+      toast.success(data?.message || "OTP resent successfully");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   // টাইমার লজিক
   useEffect(() => {
@@ -43,7 +87,9 @@ export default function VerifyEmailPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const otpString = otp.join("");
-    console.log("Submitted OTP:", otpString);
+    if (!email) return toast.error("Email address is missing. Please restart password recovery.");
+    if (otpString.length !== 6) return toast.error("Please enter the 6-digit OTP");
+    verifyMutation.mutate({ email, otp: otpString });
   };
 
   // টাইমার ফরম্যাটিং (00:XX)
@@ -110,11 +156,9 @@ export default function VerifyEmailPage() {
               Didn&apos;t get a code?{" "}
               <button
                 type="button"
-                onClick={() => {
-                  setTimeLeft(59);
-                  console.log("OTP Resent!");
-                }}
-                className="text-[#cca352] hover:underline font-semibold bg-transparent border-none cursor-pointer"
+                onClick={() => resendMutation.mutate()}
+                disabled={!email || resendMutation.isPending || timeLeft > 0}
+                className="text-[#cca352] hover:underline font-semibold bg-transparent border-none cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Resend
               </button>
@@ -123,9 +167,10 @@ export default function VerifyEmailPage() {
 
           <button
             type="submit"
-            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1 tracking-wide"
+            disabled={verifyMutation.isPending}
+            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1 tracking-wide disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Verify
+            {verifyMutation.isPending ? "Verifying..." : "Verify"}
           </button>
         </form>
       </div>

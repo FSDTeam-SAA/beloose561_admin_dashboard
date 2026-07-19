@@ -4,20 +4,62 @@ import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function ChangePasswordPage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [successModalOpen, setSuccessModalOpen] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email")?.trim() || "";
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
-    console.log("Password Change Success for password:", newPassword);
+  const restPasswordMutation = useMutation({
+    mutationFn: async (bodyData: {
+      email: string;
+      newPassword: string;
+    }) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/auth/change-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(bodyData),
+        }
+      );
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.success === false) throw new Error(data?.message || "Password reset failed");
+      return data;
+    },
+    onSuccess: (data) => {
+      toast.success(data.message || "Password reset successful");
+      setSuccessModalOpen(true);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message || "Failed to reset password");
+    },
+  });
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!email) return toast.error("Email address is missing. Please restart password recovery.");
+    if (newPassword.length < 6) return toast.error("Password must be at least 6 characters");
+    if (newPassword !== confirmPassword) return toast.error("Passwords do not match");
+    restPasswordMutation.mutate({ email, newPassword });
   };
 
   return (
@@ -114,12 +156,39 @@ export default function ChangePasswordPage() {
 
           <button
             type="submit"
-            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1.5 tracking-wide"
+            disabled={restPasswordMutation.isPending}
+            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1.5 tracking-wide disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Continue
+            {restPasswordMutation.isPending ? "Changing Password..." : "Continue"}
           </button>
         </form>
       </div>
+
+      <Dialog open={successModalOpen} onOpenChange={() => undefined}>
+        <DialogContent
+          showCloseButton={false}
+          className="border-[#CBA24A]/80 bg-[#1b120c] text-stone-200 sm:max-w-md"
+          overlayClassName="bg-black/75 backdrop-blur-sm"
+          onEscapeKeyDown={(event) => event.preventDefault()}
+          onPointerDownOutside={(event) => event.preventDefault()}
+        >
+          <DialogHeader className="items-center text-center">
+            <DialogTitle className="font-serif text-2xl text-[#cca352]">
+              Password Changed Successfully
+            </DialogTitle>
+            <DialogDescription className="text-center text-stone-400">
+              Your password has already been changed. Please sign in again with your new password.
+            </DialogDescription>
+          </DialogHeader>
+          <button
+            type="button"
+            onClick={() => router.replace("/signin")}
+            className="mt-2 h-[45px] w-full rounded-[8px] bg-[#cca352] text-xs font-bold tracking-wide text-[#140d09] transition-colors hover:bg-[#b88f3e]"
+          >
+            Back to Login
+          </button>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

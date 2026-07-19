@@ -34,7 +34,7 @@ export const authOptions: NextAuthOptions = {
 
         try {
           const res = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/user/signin`,
+            `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/auth/login`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -46,8 +46,6 @@ export const authOptions: NextAuthOptions = {
           );
 
           const response = await res.json();
-          console.log("Backend login response:", response);
-
           if (!res.ok || !response?.success) {
             throw new Error(response?.message || "Login failed");
           }
@@ -55,17 +53,18 @@ export const authOptions: NextAuthOptions = {
           const user = response.data?.user || response.data;
           if (!user) throw new Error("User data not found");
 
-          if (user.role !== "deliveryboy") {
-            throw new Error("Only Seller users can access this dashboard");
+          if (user.role !== "admin") {
+            throw new Error("Only admin users can access this dashboard");
           }
 
-          const accessToken = response.data?.accessToken || response.accessToken || null;
+          const accessToken = response.data?.accessToken;
+          if (!accessToken) throw new Error("Access token not found");
 
           return {
             id: user._id,
-            name: user.name,
+            name: user.fullName || user.name,
             email: user.email,
-            phoneNumber: user.phoneNumber || null,
+            businessName: user.businessName || null,
             role: user.role,
             profileImage: user.profileImage || null,
             accessToken,
@@ -86,7 +85,7 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.name = user.name;
         token.email = user.email;
-        token.phoneNumber = user.phoneNumber;
+        token.businessName = user.businessName;
         token.role = user.role;
         token.profileImage = user.profileImage;
         token.accessToken = user.accessToken;
@@ -99,7 +98,7 @@ export const authOptions: NextAuthOptions = {
         id: token.id,
         name: token.name,
         email: token.email,
-        phoneNumber: token.phoneNumber,
+        businessName: token.businessName,
         role: token.role,
         profileImage: token.profileImage,
         accessToken: token.accessToken,

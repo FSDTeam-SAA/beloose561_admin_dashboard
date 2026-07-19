@@ -1,10 +1,10 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 import VerifyEmailPage from './_components/VerifyEmailPage'
 
 function page() {
   return (
     <div>
-      <VerifyEmailPage />
+      <Suspense fallback={null}><VerifyEmailPage /></Suspense>
     </div>
   )
 }

@@ -2,16 +2,49 @@
 
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
-import Link from "next/link";
 import Image from "next/image";
+import { useMutation } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Send OTP to:", email);
+ const forgotPassMutation = useMutation({
+    mutationFn: async (bodyData: { email: string }) => {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/auth/forgot-password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+      body: JSON.stringify(bodyData),
+        }
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to send email");
+      }
+
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(data.message);
+      router.push(`/otp?email=${encodeURIComponent(email.trim())}`);
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
+
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    forgotPassMutation.mutate({ email: email.trim() });
   };
+
 
   return (
     <main
@@ -61,9 +94,10 @@ export default function ForgotPasswordPage() {
 
           <button
             type="submit"
-            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1 tracking-wide"
+            disabled={forgotPassMutation.isPending}
+            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1 tracking-wide disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Send OTP
+            {forgotPassMutation.isPending ? "Sending..." : "Send OTP"}
           </button>
         </form>
       </div>

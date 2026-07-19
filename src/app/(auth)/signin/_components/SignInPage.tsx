@@ -1,21 +1,45 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { FormEvent, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import Image from "next/image";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function SignInPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
-  const handleSubmit = (e: React.FormEvent) => {
+ const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    // এখানে আপনার লগইন API কল বা অথেন্টিকেশন লজিক বসবে
-    console.log({ email, password });
+    try {
+      setIsLoading(true);
+
+      const res = await signIn("credentials", {
+        email: email.trim(),
+        password,
+        redirect: false,
+      });
+
+      if (res?.error) {
+        throw new Error(res?.error);
+      }
+
+      toast.success("Login Successfully !");
+      router.replace("/");
+      router.refresh();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Login failed");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -118,9 +142,10 @@ export default function SignInPage() {
           {/* সাইন ইন বাটন */}
           <button
             type="submit"
-            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1.5 tracking-wide"
+            disabled={isLoading}
+            className="w-full cursor-pointer h-[45px] bg-[#cca352] hover:bg-[#b88f3e] text-[#140d09] font-bold text-xs rounded-[8px] transition-colors shadow-lg shadow-black/40 mt-1.5 tracking-wide disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Sign In
+            {isLoading ? "Signing In..." : "Sign In"}
           </button>
 
           {/* নিচে রেজিস্ট্রেশন লিঙ্ক */}

@@ -1,176 +1,103 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
 
-// Latest Product Submissions ডামি ডাটা
-const productSubmissions = [
-  {
-    id: 1,
-    name: "Reserva Especial Toro",
-    source: "Casa del Habano NYC",
-    date: "Jul 3, 2025",
-    status: "Pending",
-  },
-  {
-    id: 2,
-    name: "Gran Corona Edición Limitada",
-    source: "The Cigar House",
-    date: "Jul 4, 2025",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    name: "Vintage 2018 Robusto",
-    source: "Premium Leaf Co.",
-    date: "Jul 5, 2025",
-    status: "Pending",
-  },
-  {
-    id: 4,
-    name: "Habana Reserve Churchill",
-    source: "Havana Club Boston",
-    date: "Jul 6, 2025",
-    status: "Under Review",
-  },
-];
+interface Retailer {
+  _id: string;
+  storeName: string;
+  city?: string;
+  status?: string;
+  createdAt: string;
+  userId?: {
+    fullName?: string;
+    email?: string;
+    status?: string;
+  };
+}
 
-// Recent Platform Activity ডামি ডাটা
-const platformActivities = [
-  {
-    id: 1,
-    activity: "New retailer registered",
-    details: "Montecristo Room — Las Vegas, NV",
-    time: "2 min ago",
-  },
-  {
-    id: 2,
-    activity: "Product approved",
-    details: "Vintage 2018 Churchill added...",
-    time: "14 min ago",
-  },
-  {
-    id: 3,
-    activity: "Product submission",
-    details: "Reserva Especial Toro by Casa del...",
-    time: "1 hr ago",
-  },
-  {
-    id: 4,
-    activity: "New Item Arrived",
-    details: "The Smoke Lounge → Premium",
-    time: "Yesterday",
-  },
-];
+interface RetailerResponse {
+  success: boolean;
+  message?: string;
+  data?: Retailer[];
+}
+
+function getApiBaseUrl() {
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+  if (!baseUrl) throw new Error("Backend API URL is not configured.");
+  return baseUrl.replace(/\/$/, "");
+}
 
 export default function LastActivity() {
+  const { data: session } = useSession();
+  const accessToken = (session?.user as { accessToken?: string } | undefined)
+    ?.accessToken;
+
+  const retailersQuery = useQuery({
+    queryKey: ["dashboard-latest-retailers"],
+    enabled: Boolean(accessToken),
+    queryFn: async () => {
+      const response = await fetch(`${getApiBaseUrl()}/retailer`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const result = (await response.json().catch(() => null)) as RetailerResponse | null;
+      if (!response.ok || !result?.success || !Array.isArray(result.data)) {
+        throw new Error(result?.message || "Unable to load retailers.");
+      }
+      return result.data.slice(0, 5);
+    },
+  });
+
   return (
-    <div className="w-full grid grid-cols-1 lg:grid-cols-2 gap-5 rounded-2xl mt-10">
-      
-      {/* ১. Latest Product Submissions কার্ড */}
-      <div className="rounded-xl border border-[#EFE2C7] p-5 md:p-6 flex flex-col justify-between">
-        <div>
-          {/* হেডার */}
-          <div className="flex items-center justify-between pb-4">
-            <h2 className="text-sm md:text-base font-semibold tracking-wide text-[#F7E4B3]">
-              Latest Product Submissions
-            </h2>
-            <Link 
-              href="/submissions" 
-              className="text-[#cca352] hover:underline text-xs font-medium tracking-wide"
-            >
-              View All
-            </Link>
-          </div>
-
-          {/* লিস্ট আইটেমসমূহ */}
-          <div className="flex flex-col">
-            {productSubmissions.map((item, idx) => (
-              <div 
-                key={item.id} 
-                className={`flex items-center justify-between py-4 ${
-                  idx !== productSubmissions.length - 1 ? "border-b border-[#705929]" : ""
-                }`}
-              >
-                {/* প্রোডাক্ট নাম */}
-                <div className="flex-1 pr-4">
-                  <p className="text-xs md:text-[13px] font-semibold text-[#F7E4B3]/90 truncate">
-                    {item.name}
-                  </p>
-                </div>
-
-                {/* সোর্স এবং ডেট */}
-                <div className="hidden sm:block flex-1 text-center pr-4">
-                  <p className="text-[10px] md:text-xs text-stone-500 truncate">
-                    {item.source} <span className="mx-1">•</span> {item.date}
-                  </p>
-                </div>
-
-                {/* স্ট্যাটাস */}
-                <div className="w-[100px] text-right">
-                  <span className={`text-[11px] md:text-xs font-medium ${
-                    item.status === "Pending" ? "text-[#cca352]" : "text-stone-400"
-                  }`}>
-                    {item.status}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+    <div className="mt-10 w-full rounded-xl border border-[#EFE2C7] p-5 md:p-6">
+      <div className="flex items-center justify-between border-b border-[#705929] pb-4">
+        <h2 className="text-sm font-semibold tracking-wide text-[#F7E4B3] md:text-base">
+          Latest Retailers
+        </h2>
+        <Link href="/retailer-management" className="text-xs font-medium tracking-wide text-[#cca352] hover:underline">
+          View All
+        </Link>
       </div>
 
-      {/* ২. Recent Platform Activity কার্ড */}
-      <div className="rounded-xl border border-[#EFE2C7] p-5 md:p-6 flex flex-col justify-between">
-        <div>
-          {/* হেডার */}
-          <div className="flex items-center justify-between pb-4">
-            <h2 className="text-sm md:text-base font-semibold tracking-wide text-[#F7E4B3]">
-              Recent Platform Activity
-            </h2>
-            <Link 
-              href="/activity" 
-              className="text-[#cca352] hover:underline text-xs font-medium tracking-wide"
+      {retailersQuery.isLoading ? (
+        <p className="py-8 text-center text-sm text-stone-400">Loading retailers...</p>
+      ) : retailersQuery.isError ? (
+        <p className="py-8 text-center text-sm text-red-400">{retailersQuery.error.message}</p>
+      ) : retailersQuery.data?.length ? (
+        <div className="flex flex-col">
+          {retailersQuery.data.map((retailer, index) => (
+            <div
+              key={retailer._id}
+              className={`grid grid-cols-[1fr_auto] items-center gap-4 py-4 sm:grid-cols-[1fr_1fr_auto] ${
+                index !== retailersQuery.data.length - 1 ? "border-b border-[#705929]" : ""
+              }`}
             >
-              View All
-            </Link>
-          </div>
-
-          {/* লিস্ট আইটেমসমূহ */}
-          <div className="flex flex-col">
-            {platformActivities.map((item, idx) => (
-              <div 
-                key={item.id} 
-                className={`flex items-center justify-between py-4 ${
-                  idx !== platformActivities.length - 1 ? "border-b border-[#705929]" : ""
-                }`}
-              >
-                {/* অ্যাক্টিভিটি টাইটেল */}
-                <div className="flex-1 pr-4">
-                  <p className="text-xs md:text-[13px] font-semibold text-[#F7E4B3]/90 truncate">
-                    {item.activity}
-                  </p>
-                </div>
-
-                {/* ডিটেইলস */}
-                <div className="hidden sm:block flex-1 text-center pr-4">
-                  <p className="text-[10px] md:text-xs text-stone-500 truncate">
-                    {item.details}
-                  </p>
-                </div>
-
-                {/* টাইম */}
-                <div className="w-[100px] text-right">
-                  <span className="text-[10px] md:text-xs text-stone-400">
-                    {item.time}
-                  </span>
-                </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-[#F7E4B3]/90 md:text-[13px]">
+                  {retailer.userId?.fullName || retailer.storeName}
+                </p>
+                <p className="mt-1 truncate text-[10px] text-stone-500 md:text-xs">
+                  {retailer.userId?.email || "No email"}
+                </p>
               </div>
-            ))}
-          </div>
+              <div className="hidden min-w-0 sm:block">
+                <p className="truncate text-xs text-stone-400">{retailer.storeName}</p>
+                <p className="mt-1 text-[10px] text-stone-500">
+                  {retailer.city || "—"} • {new Date(retailer.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <span className="hidden text-xs capitalize text-[#cca352] md:inline">
+                  {retailer.status || retailer.userId?.status || "pending"}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-
+      ) : (
+        <p className="py-8 text-center text-sm text-stone-400">No retailers found.</p>
+      )}
     </div>
   );
 }

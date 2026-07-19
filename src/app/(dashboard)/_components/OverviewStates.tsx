@@ -1,83 +1,88 @@
 "use client";
 
-import React from "react";
-import { 
-  Store, 
-  UserCheck, 
-  Database, 
-  ClipboardCheck, 
-  Users, 
-  QrCode 
-} from "lucide-react";
+import { CircleDollarSign, UserCheck, UserRoundX, Users } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useQuery } from "@tanstack/react-query";
 
-// ডামি ডাটা স্ট্রাকচার
-const statsData = [
-  {
-    id: 1,
-    title: "Total Retailers",
-    value: "112",
-    icon: Store,
-  },
-  {
-    id: 2,
-    title: "Active Retailers",
-    value: "98",
-    icon: UserCheck,
-  },
-  {
-    id: 3,
-    title: "Master Database",
-    value: "4,241",
-    icon: Database,
-  },
-  {
-    id: 4,
-    title: "Pending Approvals",
-    value: "23",
-    icon: ClipboardCheck,
-  },
-  {
-    id: 5,
-    title: "Total Users",
-    value: "389",
-    icon: Users,
-  },
-  {
-    id: 6,
-    title: "Customer QR Scans",
-    value: "7,230",
-    icon: QrCode,
-  },
-];
+interface OverviewData {
+  totalUser: number;
+  activeUser: number;
+  suspended: number;
+  totalEarning: number;
+}
+
+interface OverviewResponse {
+  success: boolean;
+  message?: string;
+  data?: OverviewData;
+}
+
+function getApiBaseUrl() {
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+  if (!baseUrl) throw new Error("Backend API URL is not configured.");
+  return baseUrl.replace(/\/$/, "");
+}
 
 export default function OverviewStates() {
+  const { data: session, status } = useSession();
+  const accessToken = (session?.user as { accessToken?: string } | undefined)
+    ?.accessToken;
+
+  const overviewQuery = useQuery({
+    queryKey: ["dashboard-overview"],
+    enabled: Boolean(accessToken),
+    queryFn: async () => {
+      const response = await fetch(`${getApiBaseUrl()}/dashboard/overview`, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const result = (await response.json().catch(() => null)) as OverviewResponse | null;
+      if (!response.ok || !result?.success || !result.data) {
+        throw new Error(result?.message || "Unable to load dashboard overview.");
+      }
+      return result.data;
+    },
+  });
+
+  const stats = [
+    { title: "Total Users", value: overviewQuery.data?.totalUser, icon: Users },
+    { title: "Active Users", value: overviewQuery.data?.activeUser, icon: UserCheck },
+    { title: "Suspended Users", value: overviewQuery.data?.suspended, icon: UserRoundX },
+    {
+      title: "Total Earnings",
+      value:
+        overviewQuery.data?.totalEarning === undefined
+          ? undefined
+          : `$${overviewQuery.data.totalEarning.toLocaleString()}`,
+      icon: CircleDollarSign,
+    },
+  ];
+
+  const isLoading = status === "loading" || overviewQuery.isLoading;
+
   return (
     <div className="w-full">
-      {/* রেস্পন্সিভ গ্রিড লেআউট */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-        {statsData.map((stat) => {
+      {overviewQuery.isError && (
+        <p className="mb-3 text-sm text-red-400">{overviewQuery.error.message}</p>
+      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-4">
+        {stats.map((stat) => {
           const Icon = stat.icon;
           return (
             <div
-              key={stat.id}
-              className="relative overflow-hidden rounded-[12px] border border-[#EFE2C7] bg-[#332211]  p-5 flex flex-col justify-between min-h-[140px] transition-all hover:border-[#CBA24A]/80"
+              key={stat.title}
+              className="relative flex min-h-[140px] flex-col justify-between overflow-hidden rounded-[12px] border border-[#EFE2C7] bg-[#332211] p-5 transition-all hover:border-[#CBA24A]/80"
             >
-              {/* উপরের অংশ: টাইটেল এবং আইকন */}
-              <div className="flex items-start justify-between w-full">
+              <div className="flex w-full items-start justify-between">
                 <p className="text-[11px] font-semibold uppercase tracking-wider text-[#F7E4B3]/70">
                   {stat.title}
                 </p>
-                <div className="text-[#CBA24A]/80 group-hover:text-[#CBA24A] transition-colors p-1.5 rounded-lg bg-[#140d09]/40 border border-[#CBA24A]/20">
+                <div className="rounded-lg border border-[#CBA24A]/20 bg-[#140d09]/40 p-1.5 text-[#CBA24A]/80">
                   <Icon className="h-5 w-5 stroke-[1.5]" />
                 </div>
               </div>
-
-              {/* নিচের অংশ: বড় ভ্যালু টেক্সট */}
-              <div className="mt-4">
-                <h3 className="text-3xl md:text-4xl font-serif font-medium text-[#F7E4B3] tracking-wide">
-                  {stat.value}
-                </h3>
-              </div>
+              <h3 className="mt-4 font-serif text-3xl font-medium tracking-wide text-[#F7E4B3] md:text-4xl">
+                {isLoading ? "..." : (stat.value ?? "—")}
+              </h3>
             </div>
           );
         })}
