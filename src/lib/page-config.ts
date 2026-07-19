@@ -51,9 +51,17 @@ export const pageConfig: Record<
     title: "Add Consultation",
     description: "Manage pricing tiers and subscription plans",
   },
-  "/users-management": {
+  "/user-management": {
     title: "Users Management",
     description: "Manage user accounts and permissions",
+  },
+  "/subscription": {
+    title: "Subscription Management",
+    description: "Manage retailer subscription plans and status",
+  },
+  "/content-management": {
+    title: "Content Management",
+    description: "Manage customer and retailer website sections",
   },
    "/countries": {
     title: "Countries",

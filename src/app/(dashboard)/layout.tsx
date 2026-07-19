@@ -18,7 +18,7 @@ function Layout({ children }: { children: React.ReactNode }) {
         />
 
 
-        <main className="w-full lg:ml-0 mt-[100px] p-4 md:p-6 overflow-x-auto">
+        <main className="w-full lg:ml-0 mt-[100px] p-4 md:p-6 overflow-x-auto bg-[#382A1A]">
           {children}
         </main>
       </div>

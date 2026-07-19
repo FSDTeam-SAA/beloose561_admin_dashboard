@@ -49,7 +49,7 @@ export default function Header({ setSidebarOpen }: HeaderProps) {
   }, []);
 
   return (
-    <div className="fixed top-0 right-0 left-0 z-30 h-[100px] flex items-center justify-between px-4 md:px-6 bg-[#FAF6EE]">
+    <div className="fixed top-0 right-0 left-0 z-30 h-[100px] flex items-center justify-between px-4 md:px-6 bg-[#2A1E10]">
       {/* Left Side */}
       <div className="flex items-center gap-3">
         <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
