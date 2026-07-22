@@ -15,8 +15,8 @@ interface ChangePasswordResponse {
 }
 
 interface ProfileResponse {
-  status?: boolean;
   success?: boolean;
+  message?: string;
   data?: SettingsProfile;
 }
 
@@ -33,9 +33,9 @@ function ChangePassword() {
     queryKey: ["user-profile"],
     enabled: Boolean(accessToken),
     queryFn: async () => {
-      const response = await fetch(`${getApiBaseUrl()}/user/me`, { headers: { Authorization: `Bearer ${accessToken}` } });
+      const response = await fetch(`${getApiBaseUrl()}/user/profile`, { headers: { Authorization: `Bearer ${accessToken}` } });
       const data = (await response.json().catch(() => null)) as ProfileResponse | null;
-      if (!response.ok || !data?.data) throw new Error("Unable to load profile.");
+      if (!response.ok || !data?.success || !data.data) throw new Error(data?.message || "Unable to load profile.");
       return data.data;
     },
   });
@@ -49,6 +49,7 @@ function ChangePassword() {
   });
   const changePasswordMutation = useMutation({
     mutationFn: async () => {
+      if (!accessToken) throw new Error("Your session has expired. Please sign in again.");
       const response = await fetch(`${getApiBaseUrl()}/auth/change-password`, {
         method: "POST",
         headers: {
@@ -63,7 +64,7 @@ function ChangePassword() {
 
       const data = (await response.json().catch(() => null)) as ChangePasswordResponse | null;
 
-      if (!response.ok || data?.success === false || data?.status === false) {
+      if (!response.ok || !data?.success) {
         throw new Error(data?.message || "Unable to change password.");
       }
 
@@ -111,16 +112,21 @@ function ChangePassword() {
   const valid =
     currentPassword.length > 0 &&
     checks.every((check) => check.valid) &&
+    currentPassword !== newPassword &&
     newPassword === confirmPassword;
   const reset = () => {
     setCurrentPassword("");
     setNewPassword("");
     setConfirmPassword("");
+    setVisible({ current: false, next: false, confirm: false });
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (!valid) return;
+    if (!currentPassword) return toast.error("Current password is required.");
+    if (!checks.every((check) => check.valid)) return toast.error("Please meet all password requirements.");
+    if (currentPassword === newPassword) return toast.error("New password cannot be the same as your current password.");
+    if (newPassword !== confirmPassword) return toast.error("Passwords do not match.");
     if (!accessToken) return toast.error("You are not authorized.");
     changePasswordMutation.mutate();
   };
@@ -130,12 +136,12 @@ function ChangePassword() {
   return (
     <div className="space-y-4">
       <ProfileSummaryCard
-        name={profile?.name || session?.user?.name || "User"}
+        name={profile?.fullName || session?.user?.name || "User"}
         email={profile?.email || session?.user?.email || "N/A"}
-        phone={profile?.phone}
-        location={profile?.address?.cityState || profile?.address?.country}
+        phone={profile?.phoneNumber}
+        location={profile?.address}
         since={profile?.createdAt}
-        image={profile?.profileImage}
+        image={profile?.profilePicture}
       />
       <section className="rounded-lg border border-[#E7D8B8]/80 bg-[#523B21] p-4 sm:p-5">
       <form onSubmit={handleSubmit}>
@@ -167,6 +173,7 @@ function ChangePassword() {
               onChange={setConfirmPassword}
               visible={visible.confirm}
               disabled={changePasswordMutation.isPending}
+              invalid={Boolean(confirmPassword && newPassword !== confirmPassword)}
               onToggle={() =>
                 setVisible((state) => ({ ...state, confirm: !state.confirm }))
               }
@@ -192,6 +199,12 @@ function ChangePassword() {
             <li className="flex items-center gap-1.5 text-red-500">
               <X className="h-3 w-3" />
               Passwords do not match.
+            </li>
+          )}
+          {newPassword && currentPassword === newPassword && (
+            <li className="flex items-center gap-1.5 text-red-400">
+              <X className="h-3 w-3" />
+              New password cannot be the same as your current password.
             </li>
           )}
         </ul>
@@ -225,6 +238,7 @@ function PasswordField({
   onChange,
   visible,
   disabled = false,
+  invalid = false,
   onToggle,
 }: {
   label: string;
@@ -232,6 +246,7 @@ function PasswordField({
   onChange: (value: string) => void;
   visible: boolean;
   disabled?: boolean;
+  invalid?: boolean;
   onToggle: () => void;
 }) {
   return (
@@ -240,11 +255,20 @@ function PasswordField({
       <span className="relative block">
         <input
           type={visible ? "text" : "password"}
+          autoComplete={label.includes("Current") ? "current-password" : "new-password"}
+          placeholder={
+            label.includes("Current")
+              ? "Enter your current password"
+              : label.includes("Confirm")
+                ? "Confirm your new password"
+                : "Enter your new password"
+          }
           required
           value={value}
           disabled={disabled}
           onChange={(event) => onChange(event.target.value)}
-          className={`h-10 w-full rounded-md border bg-[#4B351F] px-3 pr-11 text-xs text-[#F7E4B3] outline-none transition-colors focus:border-[#D6AA50] disabled:cursor-not-allowed disabled:opacity-60 ${label.includes("Confirm") && value ? "border-red-600" : "border-[#E7D8B8]/80"}`}
+          aria-invalid={invalid}
+          className={`h-10 w-full rounded-md border bg-[#4B351F] px-3 pr-11 text-xs text-[#F7E4B3] outline-none transition-colors placeholder:text-[#A98D68] focus:border-[#D6AA50] disabled:cursor-not-allowed disabled:opacity-60 ${invalid ? "border-red-500" : "border-[#E7D8B8]/80"}`}
         />
         <button
           type="button"

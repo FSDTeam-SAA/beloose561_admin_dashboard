@@ -5,12 +5,10 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   CalendarRange,
-  FileText,
   CreditCard,
   GraduationCap,
   LayoutDashboard,
   LogOut,
-  MapPin,
   Plane,
   UserRound,
   X,
@@ -18,6 +16,14 @@ import {
 import Image from "next/image";
 import { signOut, useSession } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useState } from "react";
 
 const navigation = [
   { name: "Dashboard Overview", href: "/", icon: LayoutDashboard },
@@ -36,20 +42,30 @@ const navigation = [
     href: "/product-approval",
     icon: GraduationCap,
   },
-  {
-    name: "User Management",
-    href: "/user-management",
-    icon: MapPin,
-  },
+  // {
+  //   name: "User Management",
+  //   href: "/user-management",
+  //   icon: MapPin,
+  // },
   {
     name: "Subscription",
     href: "/subscription",
     icon: CalendarRange,
   },
+  // {
+  //   name: "Content Management",
+  //   href: "/content-management",
+  //   icon: FileText,
+  // },
   {
-    name: "Content Management",
-    href: "/content-management",
-    icon: FileText,
+    name: "Profile Info",
+    href: "/profile",
+    icon: UserRound,
+  },
+  {
+    name: "Change Password",
+    href: "/chg-password",
+    icon: UserRound,
   },
   {
     name: "Settings",
@@ -64,6 +80,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ open, setOpen }: SidebarProps) {
+  const [logoutOpen, setLogoutOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
   const { data: session } = useSession();
   const user = session?.user as
@@ -174,7 +192,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
 
           <button
             type="button"
-            onClick={() => signOut({ callbackUrl: "/signin" })}
+            onClick={() => setLogoutOpen(true)}
             className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-[5px] border border-[#D83939] text-sm font-medium text-[#F04444] transition-colors duration-200 hover:bg-[#D83939] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D83939]/50"
           >
             <LogOut className="h-4 w-4" />
@@ -182,6 +200,16 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
           </button>
         </div>
       </div>
+
+      <Dialog open={logoutOpen} onOpenChange={(value) => !isLoggingOut && setLogoutOpen(value)}>
+        <DialogContent showCloseButton={false} overlayClassName="bg-black/70 backdrop-blur-sm" className="w-[calc(100%-2rem)] max-w-[430px] gap-5 rounded-xl border border-[#CBA24A]/20 bg-[#2A1E10] p-6 text-[#F7E4B3] shadow-[0_24px_80px_rgba(0,0,0,.7)]">
+          <DialogHeader><DialogTitle className="font-serif text-xl font-normal text-[#F7E4B3]">Confirm Logout</DialogTitle><DialogDescription className="text-sm leading-6 text-[#BFA98A]">Are you sure you want to log out of your admin account?</DialogDescription></DialogHeader>
+          <div className="grid grid-cols-2 gap-3">
+            <button type="button" disabled={isLoggingOut} onClick={() => setLogoutOpen(false)} className="h-10 cursor-pointer rounded-lg border border-[#CBA24A]/35 text-xs font-medium hover:bg-[#CBA24A]/10 disabled:opacity-50">Cancel</button>
+            <button type="button" disabled={isLoggingOut} onClick={async () => { setIsLoggingOut(true); await signOut({ callbackUrl: "/signin" }); }} className="flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg bg-red-600 text-xs font-semibold text-white hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"><LogOut className="h-4 w-4" />{isLoggingOut ? "Logging out..." : "Log out"}</button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

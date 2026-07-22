@@ -1,0 +1,72 @@
+"use client";
+
+import Image from "next/image";
+import { X } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import type { Cigar } from "./MasterDatabase";
+
+interface Props {
+  cigar: Cigar | null;
+  onOpenChange: (open: boolean) => void;
+}
+
+export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
+  const details = cigar
+    ? [
+        ["Brand", cigar.brand],
+        ["Product Line", cigar.productLine],
+        ["Origin", cigar.country],
+        ["Wrapper", cigar.wrapper],
+        ["Strength", cigar.strength],
+        ["Size", cigar.size],
+        ["Ring Gauge", cigar.ringGauge?.toString()],
+        ["Price", cigar.priceRange],
+        ["Flavor Notes", cigar.flavorNotes?.length ? cigar.flavorNotes.join(", ") : "—"],
+      ]
+    : [];
+  const status = cigar?.status?.toLowerCase() || "unknown";
+  const statusStyle = status === "approved"
+    ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
+    : status === "denied" || status === "rejected"
+      ? "border-red-500/25 bg-red-950/60 text-red-400"
+      : "border-amber-500/25 bg-amber-950/60 text-amber-400";
+
+  return (
+    <Dialog open={Boolean(cigar)} onOpenChange={onOpenChange}>
+      <DialogContent showCloseButton={false} overlayClassName="bg-black/70 backdrop-blur-sm" className="w-[calc(100%-2rem)] max-w-[650px] gap-4 overflow-hidden rounded-2xl border border-[#CBA24A]/20 bg-[#1b1816] p-5 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]">
+        <DialogHeader>
+          <DialogTitle className="pr-8 font-serif text-xl font-normal text-[#F7E4B3]">Product Details</DialogTitle>
+          <DialogDescription className="sr-only">Cigar product details</DialogDescription>
+        </DialogHeader>
+        <button type="button" aria-label="Close" onClick={() => onOpenChange(false)} className="absolute right-5 top-5 cursor-pointer text-[#A99D91] hover:text-white"><X className="h-5 w-5" /></button>
+
+        <div className="grid grid-cols-[112px_1fr] items-center gap-4 rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-3">
+          {cigar?.image ? (
+            <div className="relative h-24 w-28 overflow-hidden rounded-lg border border-[#CBA24A]/25"><Image src={cigar.image} alt={cigar.name || "Cigar product"} fill unoptimized className="object-cover" /></div>
+          ) : (
+            <div className="flex h-24 w-28 items-center justify-center rounded-lg border border-dashed border-[#CBA24A]/25 text-xs text-[#8F8278]">No image</div>
+          )}
+          <div className="min-w-0"><h3 className="truncate font-serif text-xl text-[#F7E4B3]">{cigar?.name || "Unnamed Product"}</h3><p className="mt-1 truncate text-sm text-[#BFA98A]">{cigar?.brand || "—"}</p><span className={`mt-3 inline-flex rounded-full border px-3 py-1 text-[10px] font-medium capitalize ${statusStyle}`}>{status}</span></div>
+        </div>
+
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-[#CBA24A]/15 p-4">
+          {details.map(([label, value], index) => (
+            <div key={label} className={index === details.length - 1 ? "col-span-2" : "min-w-0"}>
+              <dt className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">{label}</dt>
+              <dd className="truncate text-sm text-[#F7E4B3]" title={value || "—"}>{value || "—"}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="grid grid-cols-2 gap-3">
+          <DetailText label="Description" value={cigar?.description} />
+          <DetailText label="Why You’ll Like This Cigar" value={cigar?.whyYoullLikeThis} />
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function DetailText({ label, value }: { label: string; value?: string }) {
+  return <div className="min-w-0 rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-3"><p className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">{label}</p><p className="line-clamp-3 text-xs leading-5 text-[#F7E4B3]" title={value || "—"}>{value || "—"}</p></div>;
+}
