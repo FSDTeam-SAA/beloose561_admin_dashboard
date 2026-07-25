@@ -18,6 +18,7 @@ interface InventoryListResponse {
 interface ActionResponse {
   success: boolean;
   message?: string;
+  errorSources?: { path?: string; message?: string }[];
 }
 
 function getApiBaseUrl() {
@@ -74,7 +75,7 @@ export default function ProductApprovalList() {
   });
 
   const statusMutation = useMutation({
-    mutationFn: async ({ product, status }: { product: InventoryItem; status: "approved" | "rejected" }) => {
+    mutationFn: async ({ product, status }: { product: InventoryItem; status: "active" | "inactive" }) => {
       if (!accessToken) throw new Error("Your session has expired. Please sign in again.");
       const response = await fetch(
         `${getApiBaseUrl()}/inventory/${product._id}/status`,
@@ -91,13 +92,20 @@ export default function ProductApprovalList() {
         .json()
         .catch(() => null)) as ActionResponse | null;
       if (!response.ok || !result?.success)
-        throw new Error(result?.message || `Unable to ${status === "approved" ? "approve" : "reject"} product.`);
+        throw new Error(
+          result?.errorSources
+            ?.map((source) => source.message)
+            .filter(Boolean)
+            .join(", ") ||
+            result?.message ||
+            `Unable to ${status === "active" ? "approve" : "reject"} product.`,
+        );
       return { result, product, status };
     },
     onSuccess: async ({ result, product, status }) => {
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
       await queryClient.invalidateQueries({ queryKey: ["inventory-details", product._id] });
-      toast.success(result.message || `Product ${status === "approved" ? "approved" : "rejected"} successfully.`);
+      toast.success(result.message || `Product ${status === "active" ? "approved" : "rejected"} successfully.`);
     },
     onError: (error: unknown) =>
       toast.error(
@@ -219,7 +227,7 @@ export default function ProductApprovalList() {
                           <button
                             type="button"
                             disabled={statusMutation.isPending}
-                            onClick={() => statusMutation.mutate({ product, status: "approved" })}
+                            onClick={() => statusMutation.mutate({ product, status: "active" })}
                             title="Approve Product"
                             className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-950/50 px-2.5 text-[10px] font-semibold text-emerald-400 transition hover:bg-emerald-900/60 disabled:cursor-not-allowed disabled:opacity-50"
                           >
@@ -228,7 +236,7 @@ export default function ProductApprovalList() {
                           <button
                             type="button"
                             disabled={statusMutation.isPending}
-                            onClick={() => statusMutation.mutate({ product, status: "rejected" })}
+                            onClick={() => statusMutation.mutate({ product, status: "inactive" })}
                             title="Reject Product"
                             className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-red-500/25 bg-red-950/50 px-2.5 text-[10px] font-semibold text-red-400 transition hover:bg-red-900/60 disabled:cursor-not-allowed disabled:opacity-50"
                           >

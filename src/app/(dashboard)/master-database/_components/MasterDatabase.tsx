@@ -15,24 +15,38 @@ export interface Cigar {
   _id: string;
   name: string;
   brand: string;
-  productLine?: string;
-  manufacturer?: string;
-  country?: string;
   wrapper?: string;
-  binder?: string;
-  filler?: string;
   strength?: string;
   size?: string;
-  ringGauge?: number;
-  length?: string;
-  flavorNotes?: string[];
   smokingTime?: string;
   image?: string;
   description?: string;
-  whyYoullLikeThis?: string;
-  priceRange?: string;
-  category?: string;
+  pairingSuggestions?: string[];
+  quantity?: number;
+  price: number;
+  isStaffPick?: boolean;
+  staffPickNote?: string;
+  staffPickBy?: string;
+  staffPickAddedAt?: string;
+  isNewArrival?: boolean;
+  arrivalDate?: string;
+  newArrivalNote?: string;
+  autoRemoveDays?: number;
+  newArrivalExpiresAt?: string;
+  isDailyFeatured?: boolean;
+  featuredNote?: string;
+  featuredDate?: string;
+  featuredPrice?: number;
   status?: string;
+  lowStockThreshold?: number;
+  totalSearches?: number;
+  totalViews?: number;
+  lastSoldDate?: string;
+  totalSold?: number;
+  isOnDiscount?: boolean;
+  discountPercentage?: number;
+  discountPrice?: number;
+  discountedAt?: string;
   submittedByRetailer?: string;
   createdAt: string;
   updatedAt?: string;
@@ -40,6 +54,7 @@ export interface Cigar {
 interface ApiResponse {
   success: boolean;
   message?: string;
+  errorSources?: { path?: string; message?: string }[];
   meta?: { page: number; limit: number; total: number };
   data?: Cigar[] | Cigar;
 }
@@ -100,21 +115,43 @@ export default function MasterDatabase() {
     mutationFn: async (values: CigarFormValues) => {
       if (!token)
         throw new Error("Your session has expired. Please sign in again.");
-      const body = new FormData();
-      Object.entries(values).forEach(([key, value]) => {
-        if (value === undefined || value === "") return;
-        body.append(
-          key,
-          Array.isArray(value) ? value.join(",") : String(value),
+      const { image, ...product } = values;
+      const hasImage = image instanceof File && image.size > 0;
+      const headers: HeadersInit = { Authorization: `Bearer ${token}` };
+      let body: BodyInit;
+
+      if (hasImage) {
+        const formData = new FormData();
+        Object.entries(product).forEach(([key, value]) => {
+          if (value === undefined || value === "") return;
+          formData.append(
+            key,
+            Array.isArray(value) ? value.join(",") : String(value),
+          );
+        });
+        // Set price explicitly so it can never be replaced by an empty value.
+        formData.set("price", String(Number(product.price)));
+        formData.set("image", image);
+        body = formData;
+      } else {
+        headers["Content-Type"] = "application/json";
+        body = JSON.stringify(
+          Object.fromEntries(
+            Object.entries({
+              ...product,
+              price: Number(product.price),
+            }).filter(([, value]) => value !== undefined && value !== ""),
+          ),
         );
-      });
+      }
+
       const response = await fetch(
         editing
           ? `${getApiBaseUrl()}/master-database/master-database/${editing._id}`
           : `${getApiBaseUrl()}/master-database`,
         {
           method: editing ? "PUT" : "POST",
-          headers: { Authorization: `Bearer ${token}` },
+          headers,
           body,
         },
       );
@@ -123,7 +160,12 @@ export default function MasterDatabase() {
         .catch(() => null)) as ApiResponse | null;
       if (!response.ok || !result?.success)
         throw new Error(
-          result?.message || `Unable to ${editing ? "update" : "add"} product.`,
+          result?.errorSources
+            ?.map((source) => source.message)
+            .filter(Boolean)
+            .join(", ") ||
+            result?.message ||
+            `Unable to ${editing ? "update" : "add"} product.`,
         );
       return result;
     },
@@ -195,17 +237,15 @@ export default function MasterDatabase() {
         <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A8060]" />
       </div>
       <div className="overflow-x-auto rounded-xl border border-[#CBA24A]/30">
-        <table className="w-full min-w-[1050px] border-collapse text-left">
+        <table className="w-full min-w-[800px] border-collapse text-left">
           <thead className="bg-[#1B1009]">
             <tr>
               {[
                 "Brand",
-                "Product Line",
                 "Wrapper",
                 "Strength",
                 "Size",
                 "Price",
-                "Status",
                 "Actions",
               ].map((h) => (
                 <th
@@ -235,15 +275,11 @@ export default function MasterDatabase() {
                       {cigar.name || "—"}
                     </p>
                   </td>
-                  <Cell>{cigar.productLine}</Cell>
                   <Cell>{cigar.wrapper}</Cell>
                   <Cell capitalize>{cigar.strength}</Cell>
                   <Cell>{cigar.size}</Cell>
                   <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
-                    {cigar.priceRange || "—"}
-                  </td>
-                  <td className="px-6 py-4">
-                    <Status status={cigar.status} />
+                    {Number.isFinite(cigar.price) ? `$${cigar.price.toFixed(2)}` : "—"}
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="inline-flex items-center gap-3 text-[#BFA98A]">
@@ -317,7 +353,7 @@ function RowMessage({ text, error }: { text: string; error?: boolean }) {
   return (
     <tr>
       <td
-        colSpan={8}
+        colSpan={6}
         className={`px-6 py-14 text-center text-sm ${error ? "text-red-400" : "text-[#9A8060]"}`}
       >
         {text}
@@ -338,22 +374,6 @@ function Cell({
     >
       {children || "—"}
     </td>
-  );
-}
-function Status({ status }: { status?: string }) {
-  const value = status?.toLowerCase() || "pending";
-  const style =
-    value === "approved"
-      ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
-      : value === "denied" || value === "rejected"
-        ? "border-red-500/25 bg-red-950/60 text-red-400"
-        : "border-amber-500/25 bg-amber-950/60 text-amber-400";
-  return (
-    <span
-      className={`rounded-full border px-3 py-1 text-[11px] capitalize ${style}`}
-    >
-      {value}
-    </span>
   );
 }
 function Action({

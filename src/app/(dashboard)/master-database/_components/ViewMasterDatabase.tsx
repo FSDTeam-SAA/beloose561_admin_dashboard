@@ -14,20 +14,20 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
   const details = cigar
     ? [
         ["Brand", cigar.brand],
-        ["Product Line", cigar.productLine],
-        ["Origin", cigar.country],
         ["Wrapper", cigar.wrapper],
         ["Strength", cigar.strength],
         ["Size", cigar.size],
-        ["Ring Gauge", cigar.ringGauge?.toString()],
-        ["Price", cigar.priceRange],
-        ["Flavor Notes", cigar.flavorNotes?.length ? cigar.flavorNotes.join(", ") : "—"],
+        ["Smoking Time", cigar.smokingTime],
+        ["Quantity", String(cigar.quantity ?? 0)],
+        ["Price", Number.isFinite(cigar.price) ? `$${cigar.price.toFixed(2)}` : "—"],
+        ["Minimum Stock", String(cigar.lowStockThreshold ?? 5)],
+        ["Pairing Suggestions", cigar.pairingSuggestions?.length ? cigar.pairingSuggestions.join(", ") : "—"],
       ]
     : [];
   const status = cigar?.status?.toLowerCase() || "unknown";
-  const statusStyle = status === "approved"
+  const statusStyle = status === "active"
     ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
-    : status === "denied" || status === "rejected"
+    : status === "inactive"
       ? "border-red-500/25 bg-red-950/60 text-red-400"
       : "border-amber-500/25 bg-amber-950/60 text-amber-400";
 
@@ -58,10 +58,7 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
           ))}
         </dl>
 
-        <div className="grid grid-cols-2 gap-3">
-          <DetailText label="Description" value={cigar?.description} />
-          <DetailText label="Why You’ll Like This Cigar" value={cigar?.whyYoullLikeThis} />
-        </div>
+        <DetailText label="Description" value={cigar?.description} />
       </DialogContent>
     </Dialog>
   );

@@ -56,20 +56,17 @@ type FormState = {
   strength: string;
   wrapper: string;
   size: string;
+  smokingTime: string;
+  discoveryType: "familiar" | "new";
   description: string;
+  pairingSuggestions: string;
   humidorId: string;
   shelfName: string;
   quantity: string;
   price: string;
   isStaffPick: boolean;
-  staffPickNote: string;
-  staffPickBy: string;
-  isNewArrival: boolean;
-  arrivalDate: string;
   isDailyFeatured: boolean;
-  featuredNote: string;
   lowStockThreshold: string;
-  status: string;
 };
 
 const emptyForm: FormState = {
@@ -78,23 +75,20 @@ const emptyForm: FormState = {
   strength: "medium",
   wrapper: "",
   size: "",
+  smokingTime: "",
+  discoveryType: "familiar",
   description: "",
+  pairingSuggestions: "",
   humidorId: "",
   shelfName: "",
   quantity: "0",
   price: "0",
   isStaffPick: false,
-  staffPickNote: "",
-  staffPickBy: "",
-  isNewArrival: false,
-  arrivalDate: "",
   isDailyFeatured: false,
-  featuredNote: "",
   lowStockThreshold: "5",
-  status: "under_review",
 };
 const inputClass =
-  "h-9 w-full rounded-md border border-transparent bg-[#62432F] px-3 text-xs text-[#F8E8C4] outline-none placeholder:text-[#C9B697]/70 transition focus:border-[#D6AA50]/70";
+  "h-10 w-full rounded-[4px] border border-[#A67C3D] bg-[#6A4833] px-3 text-sm text-[#F8E8C4] outline-none placeholder:text-[#B9AA9F]/65 transition focus:border-[#D6AA50] focus:ring-1 focus:ring-[#D6AA50]/30";
 
 function getApiBaseUrl() {
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
@@ -138,20 +132,17 @@ export default function EditProductApproval({
       strength: item.strength || "medium",
       wrapper: item.wrapper || "",
       size: item.size || "",
+      smokingTime: item.smokingTime || "",
+      discoveryType: item.masterCigarId ? "familiar" : "new",
       description: item.description || "",
+      pairingSuggestions: item.pairingSuggestions?.join(", ") || "",
       humidorId: item.humidorId || "",
       shelfName: item.shelfName || "",
       quantity: String(item.quantity ?? 0),
       price: String(item.price ?? 0),
       isStaffPick: Boolean(item.isStaffPick),
-      staffPickNote: item.staffPickNote || "",
-      staffPickBy: item.staffPickBy || "",
-      isNewArrival: Boolean(item.isNewArrival),
-      arrivalDate: item.arrivalDate ? item.arrivalDate.slice(0, 10) : "",
       isDailyFeatured: Boolean(item.isDailyFeatured),
-      featuredNote: item.featuredNote || "",
       lowStockThreshold: String(item.lowStockThreshold ?? 5),
-      status: item.status || "under_review",
     });
     setImageFile(undefined);
   }, [product]);
@@ -161,8 +152,8 @@ export default function EditProductApproval({
       if (!product) throw new Error("Product not found.");
       const body = new FormData();
       Object.entries(form).forEach(([key, value]) => {
-        if (key === "status") return;
-        if (key === "arrivalDate" && !value) return;
+        if (key === "discoveryType") return;
+        if (key === "pairingSuggestions" && !value) return;
         body.append(key, String(value));
       });
       if (imageFile) body.append("image", imageFile, imageFile.name);
@@ -179,26 +170,7 @@ export default function EditProductApproval({
         .catch(() => null)) as InventoryResponse | null;
       if (!response.ok || !result?.success)
         throw new Error(result?.message || "Unable to update product.");
-      const statusResponse = await fetch(
-        `${getApiBaseUrl()}/inventory/${product._id}/status`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
-          },
-          body: JSON.stringify({ status: form.status }),
-        },
-      );
-      const statusResult = (await statusResponse
-        .json()
-        .catch(() => null)) as InventoryResponse | null;
-      if (!statusResponse.ok || !statusResult?.success)
-        throw new Error(
-          statusResult?.message ||
-            "Product updated, but status could not be changed.",
-        );
-      return statusResult;
+      return result;
     },
     onSuccess: async (result) => {
       toast.success(result.message || "Inventory updated successfully.");
@@ -229,27 +201,27 @@ export default function EditProductApproval({
     type?: string;
     min?: string;
     step?: string;
+    orderClass: string;
   }> = [
-    { key: "name", label: "Cigar Name" },
-    { key: "brand", label: "Brand" },
-    { key: "wrapper", label: "Wrapper" },
-    { key: "size", label: "Size" },
-    { key: "quantity", label: "Quantity", type: "number", min: "0" },
+    { key: "name", label: "Cigar Name", orderClass: "order-1" },
+    { key: "brand", label: "Brand", orderClass: "order-2" },
+    { key: "size", label: "Size", orderClass: "order-5" },
+    { key: "quantity", label: "Quantity", type: "number", min: "0", orderClass: "order-10" },
     {
       key: "price",
-      label: "Price ($)",
+      label: "Retail Price",
       type: "number",
       min: "0",
       step: "0.01",
+      orderClass: "order-11",
     },
     {
       key: "lowStockThreshold",
-      label: "Low Stock Threshold",
+      label: "Minimum Stock",
       type: "number",
       min: "0",
+      orderClass: "order-12",
     },
-    { key: "staffPickBy", label: "Staff Pick By" },
-    { key: "arrivalDate", label: "Arrival Date", type: "date" },
   ];
 
   return (
@@ -257,10 +229,10 @@ export default function EditProductApproval({
       <DialogContent
         showCloseButton={false}
         overlayClassName="bg-black/70 backdrop-blur-sm"
-        className="max-h-[92vh] w-[calc(100%-2rem)] !max-w-[850px] gap-0 overflow-y-auto rounded-xl border border-[#CBA24A]/15 bg-[#4A2D1D] p-0 text-[#F7E4B3] shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
+        className="max-h-[92vh] w-[calc(100%-1.5rem)] !max-w-[570px] gap-0 overflow-y-auto rounded-lg border border-[#A67C3D]/70 bg-[#5A351F] p-0 text-[#F7E4B3] shadow-[0_24px_80px_rgba(0,0,0,0.65)]"
       >
-        <DialogHeader className="px-5 pb-4 pt-5 sm:px-6">
-          <DialogTitle className="pr-8 font-serif text-2xl font-semibold text-[#D6AA50]">
+        <DialogHeader className="border-b border-[#A67C3D]/35 px-5 pb-4 pt-5">
+          <DialogTitle className="pr-8 font-serif text-xl font-semibold text-[#F1C75B]">
             Edit Product
           </DialogTitle>
           <DialogDescription className="sr-only">
@@ -271,7 +243,7 @@ export default function EditProductApproval({
           <button
             type="button"
             aria-label="Close edit product"
-            className="absolute right-0 top-0 flex h-10 w-10 cursor-pointer items-center justify-center rounded-bl-lg rounded-tr-xl bg-[#D6AA50] text-[#4A2D1D] hover:bg-[#E7BF69]"
+            className="absolute right-3 top-3 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-[#E6C66D] hover:bg-[#D6AA50]/15"
           >
             <X className="h-5 w-5" />
           </button>
@@ -281,12 +253,12 @@ export default function EditProductApproval({
             Product not found.
           </p>
         ) : (
-          <form onSubmit={handleSubmit} className="space-y-4 px-5 pb-5 sm:px-6">
-            <div className="grid gap-4 sm:grid-cols-2">
+          <form onSubmit={handleSubmit} className="space-y-4 px-5 py-4">
+            <div className="grid grid-cols-1 gap-x-3 gap-y-3 sm:grid-cols-2">
               {textFields.map((field) => (
                 <label
                   key={field.key}
-                  className="space-y-1.5 text-[11px] font-medium"
+                  className={`${field.orderClass} space-y-1.5 text-xs font-medium text-[#F4D77B]`}
                 >
                   <span>{field.label}</span>
                   <input
@@ -308,8 +280,8 @@ export default function EditProductApproval({
                   />
                 </label>
               ))}
-              <label className="space-y-1.5 text-[11px] font-medium">
-                <span>Strength</span>
+              <label className="order-3 space-y-1.5 text-xs font-medium text-[#F4D77B]">
+                <span>Strength *</span>
                 <select
                 key={form.name}
                   value={form.strength}
@@ -318,10 +290,64 @@ export default function EditProductApproval({
                 >
                   <option value="mild">Mild</option>
                   <option value="medium">Medium</option>
+                  <option value="medium-full">Medium-Full</option>
                   <option value="full">Full</option>
                 </select>
               </label>
-              <label className="space-y-1.5 text-[11px] font-medium">
+              <label className="order-4 space-y-1.5 text-xs font-medium text-[#F4D77B]">
+                <span>Wrapper *</span>
+                <Select
+                  value={form.wrapper}
+                  onValueChange={(value) => setValue("wrapper", value)}
+                >
+                  <SelectTrigger className={`${inputClass} w-full cursor-pointer`}>
+                    <SelectValue placeholder="Choose one" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[#CBA24A]/30 bg-[#4A2D1D] text-[#F8E8C4]">
+                    {["Habano", "Connecticut", "Maduro", "Corojo", "Natural", "Cameroon"].map((wrapper) => (
+                      <SelectItem key={wrapper} value={wrapper} className="cursor-pointer focus:bg-[#62432F] focus:text-[#F8E8C4]">
+                        {wrapper}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="order-6 space-y-1.5 text-xs font-medium text-[#F4D77B]">
+                <span>Smoking Time *</span>
+                <Select
+                  value={form.smokingTime}
+                  onValueChange={(value) => setValue("smokingTime", value)}
+                >
+                  <SelectTrigger className={`${inputClass} w-full cursor-pointer`}>
+                    <SelectValue placeholder="Select smoking time" />
+                  </SelectTrigger>
+                  <SelectContent className="border-[#CBA24A]/30 bg-[#4A2D1D] text-[#F8E8C4]">
+                    {["30", "60", "90", "120+"].map((time) => (
+                      <SelectItem key={time} value={time} className="cursor-pointer focus:bg-[#62432F] focus:text-[#F8E8C4]">
+                        {time === "120+" ? "120+ minutes" : `${time} minutes`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="order-7 space-y-1.5 text-xs font-medium text-[#F4D77B]">
+                <span>Discovery Type *</span>
+                <Select
+                  value={form.discoveryType}
+                  onValueChange={(value) =>
+                    setValue("discoveryType", value as "familiar" | "new")
+                  }
+                >
+                  <SelectTrigger className={`${inputClass} w-full cursor-pointer`}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-[#CBA24A]/30 bg-[#4A2D1D] text-[#F8E8C4]">
+                    <SelectItem value="familiar">Something Familiar</SelectItem>
+                    <SelectItem value="new">Something New</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className="order-8 space-y-1.5 text-xs font-medium text-[#F4D77B]">
                 <span>Humidor</span>
                 <Select
                   value={form.humidorId}
@@ -361,7 +387,7 @@ export default function EditProductApproval({
                   </span>
                 )}
               </label>
-              <label className="space-y-1.5 text-[11px] font-medium">
+              <label className="order-9 space-y-1.5 text-xs font-medium text-[#F4D77B]">
                 <span>Shelf</span>
                 <Select
                   value={form.shelfName}
@@ -388,63 +414,31 @@ export default function EditProductApproval({
                   </SelectContent>
                 </Select>
               </label>
-              <label className="space-y-1.5 text-[11px] font-medium">
-                <span>Status</span>
-                <Select
-                  value={form.status}
-                  onValueChange={(value) => setValue("status", value)}
-                >
-                  <SelectTrigger
-                    className={`${inputClass} w-full cursor-pointer capitalize`}
-                  >
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent className="border-[#CBA24A]/30 bg-[#4A2D1D] text-[#F8E8C4]">
-                    {["active", "under_review", "out_of_stock", "inactive"].map(
-                      (status) => (
-                        <SelectItem
-                          key={status}
-                          value={status}
-                          className="cursor-pointer capitalize focus:bg-[#62432F] focus:text-[#F8E8C4]"
-                        >
-                          {status.replaceAll("_", " ")}
-                        </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
-              </label>
             </div>
-            <label className="block space-y-1.5 text-[11px] font-medium">
+            <label className="block space-y-1.5 text-xs font-medium text-[#F4D77B]">
               <span>Description</span>
               <textarea
                 value={form.description}
                 onChange={(event) =>
                   setValue("description", event.target.value)
                 }
-                rows={3}
-                className={`${inputClass} h-auto py-2`}
+                rows={4}
+                className={`${inputClass} h-20 resize-none py-2`}
               />
             </label>
-            <label className="block space-y-1.5 text-[11px] font-medium">
-              <span>Staff Pick Note</span>
+            <label className="block space-y-1.5 text-xs font-medium text-[#F4D77B]">
+              <span>Pairing Suggestions</span>
               <input
-                value={form.staffPickNote}
+                value={form.pairingSuggestions}
                 onChange={(event) =>
-                  setValue("staffPickNote", event.target.value)
+                  setValue("pairingSuggestions", event.target.value)
                 }
+                placeholder="Choose a pairing"
                 className={inputClass}
               />
-            </label>
-            <label className="block space-y-1.5 text-[11px] font-medium">
-              <span>Featured Note</span>
-              <input
-                value={form.featuredNote}
-                onChange={(event) =>
-                  setValue("featuredNote", event.target.value)
-                }
-                className={inputClass}
-              />
+              <span className="block text-[10px] font-normal text-[#CDB37A]">
+                Choose one or more. Separate pairings with commas.
+              </span>
             </label>
             <input
               ref={fileInputRef}
@@ -453,19 +447,33 @@ export default function EditProductApproval({
               onChange={handleImage}
               className="hidden"
             />
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="flex h-28 w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-md border border-dashed border-[#D9C6A5]/80 text-[#D9C6A5] hover:border-[#D6AA50]"
-            >
-              <Upload className="h-5 w-5" />
-              <span className="text-[11px]">
-                {imageFile?.name || "Choose a new image (optional)"}
-              </span>
-            </button>
-            <div className="flex flex-wrap gap-4 text-[11px]">
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-[#F4D77B]">Image</p>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex min-h-20 w-full cursor-pointer items-center gap-3 rounded-[4px] border border-[#A67C3D] bg-[#6A4833]/55 p-2 text-left"
+              >
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded bg-[#3E290F] text-[#D6AA50]">
+                  <Upload className="h-5 w-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="inline-flex rounded bg-[#E4AD33] px-4 py-2 text-xs font-semibold text-[#3A2417]">
+                    Choose image
+                  </span>
+                  <span className="mt-2 block truncate text-[10px] text-[#CDB37A]">
+                    {imageFile?.name || "Large images are optimized automatically before upload."}
+                  </span>
+                </span>
+              </button>
+            </div>
+            <div className="rounded-[4px] border border-[#A67C3D] bg-[#2E1B0D] p-3">
+              <p className="mb-3 text-[11px] font-semibold text-[#E4AD33]">
+                Optional customer features
+              </p>
+              <div className="flex flex-wrap gap-5 text-[11px] text-[#F4D77B]">
               {(
-                ["isStaffPick", "isNewArrival", "isDailyFeatured"] as const
+                ["isStaffPick", "isDailyFeatured"] as const
               ).map((key) => (
                 <label
                   key={key}
@@ -480,26 +488,26 @@ export default function EditProductApproval({
                   {
                     {
                       isStaffPick: "Staff Pick",
-                      isNewArrival: "New Arrival",
                       isDailyFeatured: "Daily Featured",
                     }[key]
                   }
                 </label>
               ))}
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => onOpenChange(false)}
                 disabled={updateMutation.isPending}
-                className="h-9 cursor-pointer rounded border border-[#D6AA50] text-[11px] hover:bg-[#D6AA50]/10 disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 cursor-pointer rounded border border-[#D6AA50] text-xs text-[#F4D77B] hover:bg-[#D6AA50]/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={updateMutation.isPending}
-                className="h-9 cursor-pointer rounded bg-[#D6AA50] text-[11px] font-semibold text-[#3A2417] hover:bg-[#E7BF69] disabled:cursor-not-allowed disabled:opacity-50"
+                className="h-10 cursor-pointer rounded bg-[#D6AA50] text-xs font-semibold text-[#3A2417] hover:bg-[#E7BF69] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {updateMutation.isPending ? "Updating..." : "Update"}
               </button>

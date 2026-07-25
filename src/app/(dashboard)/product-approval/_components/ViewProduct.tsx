@@ -5,8 +5,9 @@ import { X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export interface InventoryItem {
-  _id: string; userId: string; retailerId: string; name?: string; brand?: string;
+  _id: string; userId: string; retailerId: string; masterCigarId?: string; name?: string; brand?: string;
   strength?: string; wrapper?: string; size?: string; image?: string; description?: string;
+  smokingTime?: string; pairingSuggestions?: string[];
   humidorId: string; shelfName: string; quantity: number; price: number; isStaffPick?: boolean;
   staffPickNote?: string; staffPickBy?: string; isNewArrival?: boolean; arrivalDate?: string;
   newArrivalNote?: string; isDailyFeatured?: boolean; featuredNote?: string; featuredPrice?: number;
@@ -16,9 +17,9 @@ export interface InventoryItem {
 
 export function StatusBadge({ status }: { status?: string }) {
   const normalized = status?.toLowerCase() || "unknown";
-  const style = normalized === "active" || normalized === "approved"
+  const style = normalized === "active"
     ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
-    : normalized === "rejected"
+    : normalized === "inactive"
       ? "border-red-500/25 bg-red-950/60 text-red-400"
       : "border-amber-600/30 bg-amber-950/60 text-amber-400";
   return <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold capitalize ${style}`}>{normalized.replaceAll("_", " ")}</span>;
