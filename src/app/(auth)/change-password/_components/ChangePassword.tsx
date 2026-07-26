@@ -34,6 +34,10 @@ export default function ChangePasswordPage() {
         `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/auth/change-password`,
         {
           method: "POST",
+
+
+
+          
           headers: {
             "Content-Type": "application/json",
           },
