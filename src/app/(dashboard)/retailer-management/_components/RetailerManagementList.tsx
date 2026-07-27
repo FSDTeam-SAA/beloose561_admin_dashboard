@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Search, Trash2 } from "lucide-react";
+import { BadgeCheck, Clock3, Eye, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import Pagination from "@/components/pagenation/Pagenation";
 import DeleteModal from "@/components/deleteModal/DeleteModal";
 import ViewRetailer, { type Retailer } from "./ViewRetailer";
@@ -21,6 +28,13 @@ interface DeleteResponse {
   success: boolean;
   message?: string;
 }
+
+interface UpdateUserResponse {
+  success: boolean;
+  message?: string;
+}
+
+type RetailerApprovalStatus = "pending" | "approved";
 
 function getApiBaseUrl() {
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
@@ -95,6 +109,56 @@ export default function RetailerManagementList() {
       toast.error(error instanceof Error ? error.message : "Unable to delete retailer."),
   });
 
+  const statusMutation = useMutation({
+    mutationFn: async ({
+      userId,
+      status,
+    }: {
+      userId: string;
+      status: RetailerApprovalStatus;
+    }) => {
+      if (!accessToken) throw new Error("You are not authorized.");
+
+      const response = await fetch(`${getApiBaseUrl()}/user/${userId}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(
+          status === "approved"
+            ? { status: "active", verfied: "verified" }
+            : { verfied: "pending" },
+        ),
+      });
+      const result = (await response
+        .json()
+        .catch(() => null)) as UpdateUserResponse | null;
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Unable to update retailer status.");
+      }
+      return { result, status };
+    },
+    onSuccess: async ({ result, status }) => {
+      await queryClient.invalidateQueries({ queryKey: ["retailers"] });
+      await queryClient.invalidateQueries({ queryKey: ["retailer-details"] });
+      await queryClient.invalidateQueries({
+        queryKey: ["dashboard-latest-retailers"],
+      });
+      toast.success(
+        result.message ||
+          `Retailer ${status} successfully.`,
+      );
+    },
+    onError: (error: unknown) =>
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to update retailer status.",
+      ),
+  });
+
   const retailers = retailersQuery.data?.retailers ?? [];
   const total = retailersQuery.data?.meta.total ?? 0;
   const isLoading = sessionStatus === "loading" || retailersQuery.isLoading;
@@ -124,6 +188,7 @@ export default function RetailerManagementList() {
                 "Location",
                 "Created",
                 "Status",
+                "Verified",
                 "Actions",
               ].map((heading) => (
                 <th
@@ -137,16 +202,23 @@ export default function RetailerManagementList() {
           </thead>
           <tbody className="divide-y divide-[#705929]">
             {isLoading ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-stone-400">Loading retailers...</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-stone-400">Loading retailers...</td></tr>
             ) : retailersQuery.isError ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-red-400">{retailersQuery.error.message}</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-red-400">{retailersQuery.error.message}</td></tr>
             ) : !accessToken ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-red-400">You are not authorized.</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-red-400">You are not authorized.</td></tr>
             ) : retailers.length === 0 ? (
-              <tr><td colSpan={6} className="px-6 py-12 text-center text-sm text-stone-400">No retailers found.</td></tr>
+              <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-stone-400">No retailers found.</td></tr>
             ) : (
               retailers.map((retailer) => {
-                const status = retailer.status || retailer.userId?.status || "pending";
+                const isVerified =
+                  retailer.userId?.verfied?.toLowerCase() === "verified";
+                const status: RetailerApprovalStatus = isVerified
+                  ? "approved"
+                  : "pending";
+                const isUpdatingStatus =
+                  statusMutation.isPending &&
+                  statusMutation.variables?.userId === retailer.userId?._id;
                 return (
                   <tr key={retailer._id} className="transition-colors hover:bg-[#231710]/30">
                     <td className="px-6 py-4 text-xs font-semibold text-[#F7E4B3]">{retailer.storeName || "—"}</td>
@@ -157,13 +229,65 @@ export default function RetailerManagementList() {
                     <td className="px-6 py-4 text-xs text-stone-400">{[retailer.address, retailer.city].filter(Boolean).join(", ") || "—"}</td>
                     <td className="px-6 py-4 text-xs text-stone-500">{new Date(retailer.createdAt).toLocaleDateString()}</td>
                     <td className="px-6 py-4 text-xs">
-                      <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold capitalize tracking-wider ${
-                        status === "approved" || status === "active"
-                          ? "border-emerald-500/20 bg-emerald-950/60 text-emerald-400"
-                          : status === "rejected" || status === "suspended"
-                            ? "border-red-500/20 bg-red-950/60 text-red-400"
-                            : "border-amber-500/20 bg-amber-950/60 text-amber-400"
-                      }`}>{status}</span>
+                      <Select
+                        value={status}
+                        disabled={!retailer.userId?._id || isUpdatingStatus}
+                        onValueChange={(value) => {
+                          if (!retailer.userId?._id) return;
+                          statusMutation.mutate({
+                            userId: retailer.userId._id,
+                            status: value as RetailerApprovalStatus,
+                          });
+                        }}
+                      >
+                        <SelectTrigger
+                          aria-label={`Update ${retailer.storeName} status`}
+                          className={`h-8 w-[110px] cursor-pointer rounded-md px-2 text-[10px] font-semibold focus:ring-0 disabled:cursor-not-allowed ${
+                            status === "approved"
+                              ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
+                              : "border-amber-500/25 bg-amber-950/60 text-amber-400"
+                          }`}
+                        >
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="border-[#CBA24A]/25 bg-[#4A2D1D] text-[#F7E4B3]">
+                          <SelectItem
+                            value="pending"
+                            className="focus:bg-amber-950/60 focus:text-amber-400"
+                          >
+                            Pending
+                          </SelectItem>
+                          <SelectItem
+                            value="approved"
+                            className="focus:bg-emerald-950/60 focus:text-emerald-400"
+                          >
+                            Approved
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </td>
+                    <td className="px-6 py-4 text-xs">
+                      {isVerified ? (
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-950/60 px-2.5 py-1 text-emerald-400"
+                          title="Verified retailer"
+                        >
+                          <BadgeCheck className="h-4 w-4" />
+                          <span className="text-[10px] font-semibold">
+                            Verified
+                          </span>
+                        </span>
+                      ) : (
+                        <span
+                          className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-950/60 px-2.5 py-1 text-amber-400"
+                          title="Verification pending"
+                        >
+                          <Clock3 className="h-4 w-4" />
+                          <span className="text-[10px] font-semibold">
+                            Not verified
+                          </span>
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-right text-xs">
                       <div className="inline-flex items-center gap-3">

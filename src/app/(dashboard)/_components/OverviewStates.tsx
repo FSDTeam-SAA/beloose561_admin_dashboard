@@ -1,14 +1,21 @@
 "use client";
 
-import { CircleDollarSign, UserCheck, UserRoundX, Users } from "lucide-react";
+import {
+  BadgeCheck,
+  CircleDollarSign,
+  Clock3,
+  Database,
+  Store,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useQuery } from "@tanstack/react-query";
 
 interface OverviewData {
-  totalUser: number;
-  activeUser: number;
-  suspended: number;
-  totalEarning: number;
+  totalRetelier: number;
+  totalVerifiRetelier: number;
+  pendingProduct: number;
+  totalMasterDatabase: number;
+  totalEarnings: number;
 }
 
 interface OverviewResponse {
@@ -32,9 +39,12 @@ export default function OverviewStates() {
     queryKey: ["dashboard-overview"],
     enabled: Boolean(accessToken),
     queryFn: async () => {
-      const response = await fetch(`${getApiBaseUrl()}/dashboard/overview`, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const response = await fetch(
+        `${getApiBaseUrl()}/dashboard/admin/overview`,
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        },
+      );
       const result = (await response.json().catch(() => null)) as OverviewResponse | null;
       if (!response.ok || !result?.success || !result.data) {
         throw new Error(result?.message || "Unable to load dashboard overview.");
@@ -44,15 +54,32 @@ export default function OverviewStates() {
   });
 
   const stats = [
-    { title: "Total Users", value: overviewQuery.data?.totalUser, icon: Users },
-    { title: "Active Users", value: overviewQuery.data?.activeUser, icon: UserCheck },
-    { title: "Suspended Users", value: overviewQuery.data?.suspended, icon: UserRoundX },
+    {
+      title: "Total Retailers",
+      value: overviewQuery.data?.totalRetelier,
+      icon: Store,
+    },
+    {
+      title: "Verified Retailers",
+      value: overviewQuery.data?.totalVerifiRetelier,
+      icon: BadgeCheck,
+    },
+    {
+      title: "Pending Products",
+      value: overviewQuery.data?.pendingProduct,
+      icon: Clock3,
+    },
+    {
+      title: "Master Database",
+      value: overviewQuery.data?.totalMasterDatabase,
+      icon: Database,
+    },
     {
       title: "Total Earnings",
       value:
-        overviewQuery.data?.totalEarning === undefined
+        overviewQuery.data?.totalEarnings === undefined
           ? undefined
-          : `$${overviewQuery.data.totalEarning.toLocaleString()}`,
+          : `$${overviewQuery.data.totalEarnings.toLocaleString()}`,
       icon: CircleDollarSign,
     },
   ];
@@ -64,7 +91,7 @@ export default function OverviewStates() {
       {overviewQuery.isError && (
         <p className="mb-3 text-sm text-red-400">{overviewQuery.error.message}</p>
       )}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:gap-5 lg:grid-cols-5">
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (

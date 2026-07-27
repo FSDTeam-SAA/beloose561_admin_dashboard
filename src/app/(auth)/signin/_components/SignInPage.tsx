@@ -149,7 +149,7 @@ export default function SignInPage() {
           </button>
 
           {/* নিচে রেজিস্ট্রেশন লিঙ্ক */}
-          <div className="text-center text-[10px] text-stone-400 mt-1">
+          {/* <div className="text-center text-[10px] text-stone-400 mt-1">
             Don&apos;t have an account?{" "}
             <Link
               href="/register"
@@ -157,7 +157,7 @@ export default function SignInPage() {
             >
               Register Here
             </Link>
-          </div>
+          </div> */}
         </form>
       </div>
     </main>

@@ -134,6 +134,7 @@ export default function ProductApprovalList() {
           <thead>
             <tr className="border-b border-[#705929] bg-[#140d09]/40">
               {[
+                "Image",
                 "Product",
                 "Brand",
                 "Quantity",
@@ -155,7 +156,7 @@ export default function ProductApprovalList() {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="py-12 text-center text-sm text-stone-400"
                 >
                   Loading inventory...
@@ -164,7 +165,7 @@ export default function ProductApprovalList() {
             ) : inventoryQuery.isError ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="py-12 text-center text-sm text-red-400"
                 >
                   {inventoryQuery.error.message}
@@ -173,7 +174,7 @@ export default function ProductApprovalList() {
             ) : !accessToken ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="py-12 text-center text-sm text-red-400"
                 >
                   You are not authorized.
@@ -182,7 +183,7 @@ export default function ProductApprovalList() {
             ) : products.length === 0 ? (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="py-12 text-center text-sm text-stone-400"
                 >
                   No inventory found.
@@ -194,6 +195,23 @@ export default function ProductApprovalList() {
                   key={product._id}
                   className="h-16 transition-colors hover:bg-[#231710]/30"
                 >
+                  <td className="px-6 py-3">
+                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-[#CBA24A]/25 bg-[#24170E] text-sm font-semibold text-[#D6AA50]">
+                      {product.image ? (
+                        // API images may not always use a Next-configured host.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={product.image}
+                          alt={product.name || "Product"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        (product.name || product.brand || "P")
+                          .charAt(0)
+                          .toUpperCase()
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-xs font-semibold text-[#F7E4B3]">
                     {product.name || "—"}
                   </td>

@@ -5,17 +5,21 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import {
   CalendarRange,
-  CreditCard,
-  GraduationCap,
+  ClipboardCheck,
+  Database,
+  KeyRound,
   LayoutDashboard,
   LogOut,
-  Plane,
-  UserRound,
+  ReceiptText,
+  Settings as SettingsIcon,
+  Store,
+  UserCog,
   X,
 } from "lucide-react";
 import Image from "next/image";
-import { signOut, useSession } from "next-auth/react";
+import { signOut } from "next-auth/react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useProfileSummary } from "@/hooks/use-profile-summary";
 import {
   Dialog,
   DialogContent,
@@ -30,17 +34,17 @@ const navigation = [
   {
     name: "Retailer Management",
     href: "/retailer-management",
-    icon: CreditCard,
+    icon: Store,
   },
   {
     name: "Master Database",
     href: "/master-database",
-    icon: Plane,
+    icon: Database,
   },
   {
     name: "Product Approval",
     href: "/product-approval",
-    icon: GraduationCap,
+    icon: ClipboardCheck,
   },
   // {
   //   name: "User Management",
@@ -52,25 +56,25 @@ const navigation = [
     href: "/subscription",
     icon: CalendarRange,
   },
-  // {
-  //   name: "Content Management",
-  //   href: "/content-management",
-  //   icon: FileText,
-  // },
+  {
+    name: "Payment History",
+    href: "/payment-history",
+    icon: ReceiptText,
+  },
   {
     name: "Profile Info",
     href: "/profile",
-    icon: UserRound,
+    icon: UserCog,
   },
   {
     name: "Change Password",
     href: "/chg-password",
-    icon: UserRound,
+    icon: KeyRound,
   },
   {
     name: "Settings",
     href: "/settings",
-    icon: UserRound,
+    icon: SettingsIcon,
   },
 ];
 
@@ -83,12 +87,9 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const user = session?.user as
-    | { name?: string; email?: string; profileImage?: string }
-    | undefined;
+  const user = useProfileSummary();
   const initials =
-    user?.name
+    user.name
       ?.split(" ")
       .map((part) => part[0])
       .join("")
@@ -171,8 +172,8 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
           <div className="mb-3 flex items-center gap-3">
             <Avatar className="h-10 w-10 border border-[#CBA24A]/30">
               <AvatarImage
-                src={user?.profileImage}
-                alt={user?.name || "User profile"}
+                src={user.image}
+                alt={user.name}
                 className="object-cover"
               />
               <AvatarFallback className="bg-[#CBA24A]/20 text-xs font-semibold text-[#E5BE6A]">
@@ -182,10 +183,10 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
 
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-[#F5E7C8]">
-                {user?.name || "Admin User"}
+                {user.name}
               </p>
               <p className="truncate text-[11px] text-[#9A8060]">
-                {user?.email || "admin@example.com"}
+                {user.email}
               </p>
             </div>
           </div>

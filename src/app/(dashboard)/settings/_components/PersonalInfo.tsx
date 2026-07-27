@@ -11,6 +11,13 @@ import { Pencil } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import ProfileSummaryCard from "./ProfileSummaryCard";
 
 export interface SettingsProfile {
@@ -39,7 +46,6 @@ interface ProfileResponse {
 interface FormState {
   firstName: string;
   lastName: string;
-  businessName: string;
   email: string;
   phoneNumber: string;
   gender: string;
@@ -49,7 +55,6 @@ interface FormState {
 const emptyForm: FormState = {
   firstName: "",
   lastName: "",
-  businessName: "",
   email: "",
   phoneNumber: "",
   gender: "",
@@ -70,7 +75,6 @@ function toForm(user: SettingsProfile): FormState {
   return {
     firstName,
     lastName: lastName.join(" "),
-    businessName: user.businessName || "",
     email: user.email || "",
     phoneNumber: user.phoneNumber || "",
     gender: user.gender || "",
@@ -121,7 +125,6 @@ export default function PersonalInfo() {
         "fullName",
         `${form.firstName.trim()} ${form.lastName.trim()}`.trim(),
       );
-      body.append("businessName", form.businessName.trim());
       body.append("phoneNumber", form.phoneNumber.trim());
       body.append("address", form.address.trim());
       if (form.gender) body.append("gender", form.gender);
@@ -234,16 +237,6 @@ export default function PersonalInfo() {
                 className={inputClass}
               />
             </Field>
-            <Field label="Business Name">
-              <input
-                value={form.businessName}
-                disabled={disabled || !editing}
-                onChange={(event) =>
-                  setValue("businessName", event.target.value)
-                }
-                className={inputClass}
-              />
-            </Field>
             <Field label="Email">
               <input
                 type="email"
@@ -276,23 +269,39 @@ export default function PersonalInfo() {
               />
             </Field>
             <Field label="Gender">
-              <select
-                value={form.gender}
+              <Select
+                value={form.gender || "not-specified"}
                 disabled={disabled || !editing}
-                onChange={(event) => setValue("gender", event.target.value)}
-                className={inputClass}
+                onValueChange={(value) =>
+                  setValue("gender", value === "not-specified" ? "" : value)
+                }
               >
-                <option value="">Not specified</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-              </select>
-            </Field>
-            <Field label="Role">
-              <input
-                value={user?.role || "—"}
-                disabled
-                className={`${inputClass} capitalize`}
-              />
+                <SelectTrigger
+                  className={`${inputClass} shadow-none focus:ring-0`}
+                >
+                  <SelectValue placeholder="Not specified" />
+                </SelectTrigger>
+                <SelectContent className="border-[#CBA24A]/25 bg-[#4A2D1D] text-[#F7E4B3]">
+                  <SelectItem
+                    value="not-specified"
+                    className="focus:bg-[#D6AA50]/15 focus:text-[#F7E4B3]"
+                  >
+                    Not specified
+                  </SelectItem>
+                  <SelectItem
+                    value="male"
+                    className="focus:bg-[#D6AA50]/15 focus:text-[#F7E4B3]"
+                  >
+                    Male
+                  </SelectItem>
+                  <SelectItem
+                    value="female"
+                    className="focus:bg-[#D6AA50]/15 focus:text-[#F7E4B3]"
+                  >
+                    Female
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <div className="sm:col-span-2">
               <Field label="Address">
@@ -306,17 +315,7 @@ export default function PersonalInfo() {
               </Field>
             </div>
           </div>
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <div className="flex gap-2">
-              <Badge
-                label={user?.status || "unknown"}
-                positive={user?.status === "active"}
-              />
-              <Badge
-                label={user?.verfied || "pending"}
-                positive={user?.verfied === "verified"}
-              />
-            </div>
+          <div className="mt-4 flex items-center justify-end gap-4">
             {editing ? (
               <div className="flex gap-2">
                 <button
@@ -349,15 +348,6 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
       <span>{label}</span>
       {children}
     </label>
-  );
-}
-function Badge({ label, positive }: { label: string; positive: boolean }) {
-  return (
-    <span
-      className={`rounded-full border px-3 py-1 text-[10px] capitalize ${positive ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400" : "border-amber-500/25 bg-amber-950/60 text-amber-400"}`}
-    >
-      {label}
-    </span>
   );
 }
 function StateMessage({ text, error }: { text: string; error?: boolean }) {

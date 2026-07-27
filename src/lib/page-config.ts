@@ -59,6 +59,10 @@ export const pageConfig: Record<
     title: "Subscription Management",
     description: "Manage retailer subscription plans and status",
   },
+  "/notification": {
+    title: "Notifications",
+    description: "Review admin alerts, reminders, and approval updates",
+  },
   "/content-management": {
     title: "Content Management",
     description: "Manage customer and retailer website sections",

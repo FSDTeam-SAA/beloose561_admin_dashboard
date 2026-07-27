@@ -136,7 +136,10 @@ export default function EditProductApproval({
       discoveryType: item.masterCigarId ? "familiar" : "new",
       description: item.description || "",
       pairingSuggestions: item.pairingSuggestions?.join(", ") || "",
-      humidorId: item.humidorId || "",
+      humidorId:
+        typeof item.humidorId === "string"
+          ? item.humidorId
+          : item.humidorId?._id || "",
       shelfName: item.shelfName || "",
       quantity: String(item.quantity ?? 0),
       price: String(item.price ?? 0),

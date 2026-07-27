@@ -66,7 +66,7 @@ export const authOptions: NextAuthOptions = {
             email: user.email,
             businessName: user.businessName || null,
             role: user.role,
-            profileImage: user.profileImage || null,
+            profileImage: user.profilePicture || user.profileImage || null,
             accessToken,
           };
         } catch (error) {

@@ -3,7 +3,7 @@
 import { CalendarDays, Check, CreditCard, Users, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-interface Subscriber {
+export interface Subscriber {
   _id?: string; fullName?: string; name?: string; email?: string; role?: string;
   businessName?: string; phoneNumber?: string; subscriptionExpiry?: string; status?: string;
 }
@@ -40,14 +40,8 @@ export default function DetaislSubscriptionModal({ open, subscription, onOpenCha
 
       <section className="rounded-xl border border-[#CBA24A]/15 p-4"><h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#D6AA50]">Plan Features</h4>{subscription.features?.length ? <div className="grid grid-cols-2 gap-x-5 gap-y-2">{subscription.features.map((feature, index) => <div key={`${feature}-${index}`} className="flex min-w-0 items-start gap-2"><span className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-950 text-emerald-400"><Check className="h-2.5 w-2.5" /></span><span className="text-xs leading-4 text-[#D9C9B1]">{feature}</span></div>)}</div> : <p className="text-xs text-[#8F8278]">No features have been added to this plan.</p>}</section>
 
-      <section className="rounded-xl border border-[#CBA24A]/15 p-4"><div className="mb-3 flex items-center justify-between"><h4 className="text-xs font-semibold uppercase tracking-wider text-[#D6AA50]">Subscribed Users</h4><span className="rounded-full bg-[#D6AA50]/10 px-2.5 py-1 text-[10px] text-[#D6AA50]">{subscribers.length} total</span></div>{subscribers.length ? <div className="grid grid-cols-2 gap-2">{subscribers.slice(0, 4).map((user, index) => <SubscriberCard key={typeof user === "string" ? user : user._id || index} user={user} />)}</div> : <div className="rounded-lg border border-dashed border-[#CBA24A]/20 py-5 text-center text-xs text-[#8F8278]">No users are subscribed to this plan yet.</div>}{subscribers.length > 4 ? <p className="mt-3 text-center text-[11px] text-[#BFA98A]">And {subscribers.length - 4} more subscriber{subscribers.length - 4 === 1 ? "" : "s"}</p> : null}</section>
     </DialogContent>
   </Dialog>;
 }
 
 function Summary({ icon, label, value, capitalize }: { icon: React.ReactElement; label: string; value: string; capitalize?: boolean }) { return <div className="min-w-0 rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/60 p-3"><div className="mb-2 text-[#D6AA50] [&>svg]:h-4 [&>svg]:w-4">{icon}</div><p className="text-[9px] uppercase tracking-wider text-[#8F8278]">{label}</p><p className={`mt-1 truncate text-xs font-medium text-[#F7E4B3] ${capitalize ? "capitalize" : ""}`} title={value}>{value}</p></div>; }
-
-function SubscriberCard({ user }: { user: string | Subscriber }) {
-  if (typeof user === "string") return <div className="min-w-0 rounded-lg bg-[#241e1a]/70 p-3"><p className="truncate text-xs text-[#BFA98A]">Subscriber</p></div>;
-  return <div className="min-w-0 rounded-lg bg-[#241e1a]/70 p-3"><div className="flex items-center justify-between gap-2"><p className="truncate text-sm font-medium">{user.fullName || user.name || "Subscriber"}</p>{user.role ? <span className="shrink-0 text-[9px] capitalize text-[#D6AA50]">{user.role}</span> : null}</div><p className="mt-1 truncate text-[10px] text-[#9A8060]">{user.email || user.businessName || user.phoneNumber || "No contact information"}</p>{user.subscriptionExpiry ? <p className="mt-1 text-[9px] text-[#8F8278]">Expires {formatDate(user.subscriptionExpiry)}</p> : null}</div>;
-}

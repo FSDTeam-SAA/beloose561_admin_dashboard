@@ -11,10 +11,26 @@ import DeleteModal from "@/components/deleteModal/DeleteModal";
 import AddMasterDatabase, { type CigarFormValues } from "./AddMasterDatabase";
 import ViewMasterDatabase from "./ViewMasterDatabase";
 
+export interface SubmittedRetailer {
+  _id: string;
+  userId?: string;
+  storeName?: string;
+  address?: string;
+  phoneNumber?: string;
+  city?: string;
+  description?: string;
+  storeSlug?: string;
+  status?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  logo?: string;
+}
+
 export interface Cigar {
   _id: string;
   name: string;
   brand: string;
+  discoveryType?: string;
   wrapper?: string;
   strength?: string;
   size?: string;
@@ -47,7 +63,7 @@ export interface Cigar {
   discountPercentage?: number;
   discountPrice?: number;
   discountedAt?: string;
-  submittedByRetailer?: string;
+  submittedByRetailer?: string | SubmittedRetailer;
   createdAt: string;
   updatedAt?: string;
 }
@@ -241,6 +257,7 @@ export default function MasterDatabase() {
           <thead className="bg-[#1B1009]">
             <tr>
               {[
+                "Image",
                 "Brand",
                 "Wrapper",
                 "Strength",
@@ -265,8 +282,28 @@ export default function MasterDatabase() {
             ) : cigars.length === 0 ? (
               <RowMessage text="No cigars found." />
             ) : (
-              cigars.map((cigar) => (
-                <tr key={cigar._id} className="h-[66px] hover:bg-[#4A301D]/45">
+              cigars.map((cigar, index) => (
+                <tr
+                  key={`${cigar._id}-${index}`}
+                  className="h-[66px] hover:bg-[#4A301D]/45"
+                >
+                  <td className="px-6 py-3">
+                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-[#CBA24A]/25 bg-[#24170E] text-sm font-semibold text-[#D6AA50]">
+                      {cigar.image ? (
+                        // API images can include blob or non-Next-configured URLs.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={cigar.image}
+                          alt={cigar.name || "Product"}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        (cigar.name || cigar.brand || "C")
+                          .charAt(0)
+                          .toUpperCase()
+                      )}
+                    </div>
+                  </td>
                   <td className="px-6 py-4 text-sm">
                     <p className="font-medium text-[#F7E4B3]">
                       {cigar.brand || "—"}
@@ -353,7 +390,7 @@ function RowMessage({ text, error }: { text: string; error?: boolean }) {
   return (
     <tr>
       <td
-        colSpan={6}
+        colSpan={7}
         className={`px-6 py-14 text-center text-sm ${error ? "text-red-400" : "text-[#9A8060]"}`}
       >
         {text}

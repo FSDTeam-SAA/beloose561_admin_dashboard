@@ -16,7 +16,7 @@ import {
 
 interface ChartItem {
   month: string;
-  totalRevenue: number;
+  revenue: number;
 }
 
 interface ChartResponse {
@@ -24,7 +24,7 @@ interface ChartResponse {
   message?: string;
   data?: {
     year: number;
-    summary: { totalRevenue: number };
+    totalRevenue: number;
     chartData: ChartItem[];
   };
 }
@@ -44,11 +44,11 @@ export default function RetailerGrowthChart() {
     ?.accessToken;
 
   const chartQuery = useQuery({
-    queryKey: ["dashboard-chart", selectedYear],
+    queryKey: ["dashboard-revenue", selectedYear],
     enabled: Boolean(accessToken),
     queryFn: async () => {
       const response = await fetch(
-        `${getApiBaseUrl()}/dashboard/chart?year=${selectedYear}`,
+        `${getApiBaseUrl()}/dashboard/admin/revenue?year=${selectedYear}`,
         { headers: { Authorization: `Bearer ${accessToken}` } },
       );
       const result = (await response.json().catch(() => null)) as ChartResponse | null;
@@ -67,7 +67,7 @@ export default function RetailerGrowthChart() {
             Retailer Revenue
           </h2>
           <p className="mt-1 text-xs text-stone-400">
-            Total revenue: ${chartQuery.data?.summary.totalRevenue.toLocaleString() ?? "0"}
+            Total revenue: ${chartQuery.data?.totalRevenue.toLocaleString() ?? "0"}
           </p>
         </div>
         <div className="relative flex items-center rounded border border-[#CBA24A]/30 bg-[#140d09]/40 text-[#cca352] focus-within:border-[#CBA24A]/70">
@@ -115,7 +115,7 @@ export default function RetailerGrowthChart() {
                 labelStyle={{ color: "#F7E4B3" }}
                 itemStyle={{ color: "#cca352" }}
               />
-              <Area type="monotone" dataKey="totalRevenue" stroke="#cca352" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+              <Area type="monotone" dataKey="revenue" stroke="#cca352" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

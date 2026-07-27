@@ -11,6 +11,11 @@ interface Props {
 }
 
 export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
+  const submittedByRetailer =
+    cigar?.submittedByRetailer &&
+    typeof cigar.submittedByRetailer !== "string"
+      ? cigar.submittedByRetailer
+      : undefined;
   const details = cigar
     ? [
         ["Brand", cigar.brand],
@@ -33,7 +38,7 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
 
   return (
     <Dialog open={Boolean(cigar)} onOpenChange={onOpenChange}>
-      <DialogContent showCloseButton={false} overlayClassName="bg-black/70 backdrop-blur-sm" className="w-[calc(100%-2rem)] max-w-[650px] gap-4 overflow-hidden rounded-2xl border border-[#CBA24A]/20 bg-[#1b1816] p-5 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]">
+      <DialogContent showCloseButton={false} overlayClassName="bg-black/70 backdrop-blur-sm" className="max-h-[90vh] w-[calc(100%-2rem)] max-w-[650px] gap-4 overflow-y-auto rounded-2xl border border-[#CBA24A]/20 bg-[#4A2D1D] p-5 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]">
         <DialogHeader>
           <DialogTitle className="pr-8 font-serif text-xl font-normal text-[#F7E4B3]">Product Details</DialogTitle>
           <DialogDescription className="sr-only">Cigar product details</DialogDescription>
@@ -57,6 +62,45 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
             </div>
           ))}
         </dl>
+
+        {submittedByRetailer && (
+          <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
+            <h4 className="mb-3 text-xs font-semibold uppercase tracking-wider text-[#D6AA50]">
+              Submitted By Retailer
+            </h4>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-3">
+              {[
+                ["Store Name", submittedByRetailer.storeName],
+                [
+                  "Location",
+                  [submittedByRetailer.address, submittedByRetailer.city]
+                    .filter(Boolean)
+                    .join(", "),
+                ],
+                ["Phone", submittedByRetailer.phoneNumber],
+                ["Store Slug", submittedByRetailer.storeSlug],
+                ["Retailer Status", submittedByRetailer.status],
+                ["Subscription Plan", submittedByRetailer.subscriptionPlan],
+                [
+                  "Subscription Status",
+                  submittedByRetailer.subscriptionStatus,
+                ],
+              ].map(([label, value]) => (
+                <div key={label} className="min-w-0">
+                  <dt className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">
+                    {label}
+                  </dt>
+                  <dd
+                    className="truncate text-sm capitalize text-[#F7E4B3]"
+                    title={value || "—"}
+                  >
+                    {value || "—"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        )}
 
         <DetailText label="Description" value={cigar?.description} />
       </DialogContent>

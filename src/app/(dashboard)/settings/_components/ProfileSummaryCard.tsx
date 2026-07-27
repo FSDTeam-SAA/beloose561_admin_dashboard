@@ -11,7 +11,7 @@ interface ProfileSummaryCardProps {
 
 function initials(name: string) { return name.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase(); }
 
-export default function ProfileSummaryCard({ name = "The Cigar Lounge", image, disabled, onImageChange }: ProfileSummaryCardProps) {
+export default function ProfileSummaryCard({ name = "The Cigar Lounge", email, image, disabled, onImageChange }: ProfileSummaryCardProps) {
   return (
     <section className="relative h-[140px] overflow-hidden rounded-lg bg-[#21160E]">
       <Image src="/images/bg_auth_image.png" alt="" fill priority className="object-cover opacity-35" />
@@ -21,7 +21,7 @@ export default function ProfileSummaryCard({ name = "The Cigar Lounge", image, d
           {image ? <Image src={image} alt={name} fill unoptimized className="object-cover" /> : <span className="flex h-full w-full items-center justify-center text-xl font-bold text-[#D6AA50]">{initials(name)}</span>}
           {onImageChange ? <label className="absolute bottom-1 right-1 flex h-6 w-6 cursor-pointer items-center justify-center rounded-full bg-[#D6AA50] text-[#3A2818]"><Pencil className="h-3 w-3" /><span className="sr-only">Change profile picture</span><input type="file" accept="image/png,image/jpeg" disabled={disabled} onChange={onImageChange} className="hidden" /></label> : null}
         </div>
-        <div className="pb-3"><h2 className="font-serif text-xl font-semibold text-[#F7E4B3]">{name}</h2><p className="text-[10px] text-[#BFA98A]">Premium Retailer · Humidor411 Partner</p></div>
+        <div className="min-w-0 pb-3"><h2 className="truncate font-serif text-xl font-semibold text-[#F7E4B3]">{name}</h2><p className="truncate text-[10px] text-[#BFA98A]">{email || "No email available"}</p></div>
       </div>
     </section>
   );
