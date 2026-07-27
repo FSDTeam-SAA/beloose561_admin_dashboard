@@ -9,12 +9,14 @@ import {
   Clock3,
   Eye,
   PackageCheck,
+  Trash2,
   UserPlus,
 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import Pagination from "@/components/pagenation/Pagenation";
+import DeleteModal from "@/components/deleteModal/DeleteModal";
 import {
   Select,
   SelectContent,
@@ -85,6 +87,8 @@ export default function NotificationPage() {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<Filter>("all");
   const [selectedNotification, setSelectedNotification] =
+    useState<Notification | null>(null);
+  const [deletingNotification, setDeletingNotification] =
     useState<Notification | null>(null);
   const limit = 10;
 
@@ -178,6 +182,36 @@ export default function NotificationPage() {
   const isLoading =
     sessionStatus === "loading" || notificationsQuery.isLoading;
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!accessToken) throw new Error("You are not authorized.");
+      const response = await fetch(`${getApiBaseUrl()}/notifation/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const result = (await response
+        .json()
+        .catch(() => null)) as ActionResponse | null;
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.message || "Unable to delete notification.");
+      }
+      return result;
+    },
+    onSuccess: async (result) => {
+      const deletingLastItem = notifications.length === 1 && page > 1;
+      setDeletingNotification(null);
+      if (deletingLastItem) setPage((current) => current - 1);
+      await queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success(result.message || "Notification deleted successfully.");
+    },
+    onError: (error: unknown) =>
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete notification.",
+      ),
+  });
+
   return (
     <div className="flex w-full flex-col gap-5">
       <section className="space-y-4">
@@ -252,7 +286,7 @@ export default function NotificationPage() {
                   <NotificationIcon type={notification.type} />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <h3
@@ -305,6 +339,15 @@ export default function NotificationPage() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setDeletingNotification(notification)}
+                        aria-label={`Delete ${notification.title}`}
+                        title="Delete Notification"
+                        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg bg-red-500/10 text-red-400 transition hover:bg-red-500/20"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -326,6 +369,27 @@ export default function NotificationPage() {
         notification={selectedNotification}
         onOpenChange={(open) => {
           if (!open) setSelectedNotification(null);
+        }}
+      />
+      <DeleteModal
+        open={deletingNotification !== null}
+        title="Delete Notification"
+        itemName={deletingNotification?.title}
+        description={
+          deletingNotification
+            ? `Are you sure you want to delete “${deletingNotification.title}”? This action cannot be undone.`
+            : undefined
+        }
+        disabled={deleteMutation.isPending}
+        onConfirm={() => {
+          if (deletingNotification) {
+            deleteMutation.mutate(deletingNotification._id);
+          }
+        }}
+        onOpenChange={(open) => {
+          if (!open && !deleteMutation.isPending) {
+            setDeletingNotification(null);
+          }
         }}
       />
     </div>
