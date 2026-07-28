@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Eye, FileUp, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSession } from "next-auth/react";
+import { signOut, useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import Pagination from "@/components/pagenation/Pagenation";
 import DeleteModal from "@/components/deleteModal/DeleteModal";
 import AddMasterDatabase, { type CigarFormValues } from "./AddMasterDatabase";
+import BulkUploadMasterDatabase from "./BulkUploadMasterDatabase";
 import ViewMasterDatabase from "./ViewMasterDatabase";
 
 export interface SubmittedRetailer {
@@ -37,9 +38,11 @@ export interface Cigar {
   smokingTime?: string;
   image?: string;
   description?: string;
+  manufacturer?: string;
+  country?: string;
   pairingSuggestions?: string[];
   quantity?: number;
-  price: number;
+  price?: number;
   isStaffPick?: boolean;
   staffPickNote?: string;
   staffPickBy?: string;
@@ -80,15 +83,31 @@ const getApiBaseUrl = () => {
   return url.replace(/\/$/, "");
 };
 
+const normalizeAccessToken = (value?: string) =>
+  value
+    ?.trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/^Bearer\s+/i, "");
+
+const isInvalidTokenError = (message?: string) =>
+  Boolean(
+    message &&
+      /token signature is invalid|invalid signature|jwt malformed|jwt expired|token expired/i.test(
+        message,
+      ),
+  );
+
 export default function MasterDatabase() {
   const { data: session } = useSession();
-  const token = (session?.user as { accessToken?: string } | undefined)
-    ?.accessToken;
+  const token = normalizeAccessToken(
+    (session?.user as { accessToken?: string } | undefined)?.accessToken,
+  );
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
   const [editing, setEditing] = useState<Cigar | null>(null);
   const [viewing, setViewing] = useState<Cigar | null>(null);
   const [deleting, setDeleting] = useState<Cigar | null>(null);
@@ -131,50 +150,27 @@ export default function MasterDatabase() {
     mutationFn: async (values: CigarFormValues) => {
       if (!token)
         throw new Error("Your session has expired. Please sign in again.");
-      const { image, ...product } = values;
-      const hasImage = image instanceof File && image.size > 0;
-      const headers: HeadersInit = { Authorization: `Bearer ${token}` };
-      let body: BodyInit;
-
-      if (hasImage) {
-        const formData = new FormData();
-        Object.entries(product).forEach(([key, value]) => {
-          if (value === undefined || value === "") return;
-          formData.append(
-            key,
-            Array.isArray(value) ? value.join(",") : String(value),
-          );
-        });
-        // Set price explicitly so it can never be replaced by an empty value.
-        formData.set("price", String(Number(product.price)));
-        formData.set("image", image);
-        body = formData;
-      } else {
-        headers["Content-Type"] = "application/json";
-        body = JSON.stringify(
-          Object.fromEntries(
-            Object.entries({
-              ...product,
-              price: Number(product.price),
-            }).filter(([, value]) => value !== undefined && value !== ""),
-          ),
-        );
-      }
-
       const response = await fetch(
         editing
           ? `${getApiBaseUrl()}/master-database/master-database/${editing._id}`
           : `${getApiBaseUrl()}/master-database`,
         {
           method: editing ? "PUT" : "POST",
-          headers,
-          body,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(values),
         },
       );
       const result = (await response
         .json()
         .catch(() => null)) as ApiResponse | null;
-      if (!response.ok || !result?.success)
+      if (!response.ok || !result?.success) {
+        if (isInvalidTokenError(result?.message)) {
+          await signOut({ callbackUrl: "/signin" });
+          throw new Error("Your session is no longer valid. Please sign in again.");
+        }
         throw new Error(
           result?.errorSources
             ?.map((source) => source.message)
@@ -183,6 +179,7 @@ export default function MasterDatabase() {
             result?.message ||
             `Unable to ${editing ? "update" : "add"} product.`,
         );
+      }
       return result;
     },
     onSuccess: async (result) => {
@@ -191,6 +188,46 @@ export default function MasterDatabase() {
       );
       setFormOpen(false);
       setEditing(null);
+      await queryClient.invalidateQueries({ queryKey: ["master-database"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!token)
+        throw new Error("Your session has expired. Please sign in again.");
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch(
+        `${getApiBaseUrl()}/master-database/bulk-upload`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        },
+      );
+      const result = (await response
+        .json()
+        .catch(() => null)) as ApiResponse | null;
+      if (!response.ok || !result?.success) {
+        if (isInvalidTokenError(result?.message)) {
+          await signOut({ callbackUrl: "/signin" });
+          throw new Error("Your session is no longer valid. Please sign in again.");
+        }
+        throw new Error(
+          result?.errorSources
+            ?.map((source) => source.message)
+            .filter(Boolean)
+            .join(", ") ||
+            result?.message ||
+            "Unable to upload CSV file.",
+        );
+      }
+      return result;
+    },
+    onSuccess: async (result) => {
+      toast.success(result.message || "Bulk data uploaded successfully.");
+      setBulkOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["master-database"] });
     },
     onError: (error: Error) => toast.error(error.message),
@@ -230,17 +267,27 @@ export default function MasterDatabase() {
             The central catalog of all cigar products
           </p> */}
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setEditing(null);
-            setFormOpen(true);
-          }}
-          className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#D6AA50] px-5 text-xs font-semibold text-[#2B1B10] hover:bg-[#E7BF69]"
-        >
-          <Plus className="h-4 w-4" />
-          Add Product
-        </button>
+        <div className="flex flex-row gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+            className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#D6AA50] px-5 text-xs font-semibold text-[#2B1B10] hover:bg-[#E7BF69]"
+          >
+            <Plus className="h-4 w-4" />
+            Add Manually
+          </button>
+          <button
+            type="button"
+            onClick={() => setBulkOpen(true)}
+            className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#D6AA50] px-5 text-xs font-semibold text-[#F4D77B] hover:bg-[#D6AA50]/10"
+          >
+            <FileUp className="h-4 w-4" />
+            Add Bulk Data
+          </button>
+        </div>
       </div>
       <div className="relative w-full max-w-[360px]">
         <Input
@@ -257,12 +304,12 @@ export default function MasterDatabase() {
           <thead className="bg-[#1B1009]">
             <tr>
               {[
-                "Image",
+                "Product Name",
                 "Brand",
-                "Wrapper",
-                "Strength",
-                "Size",
+                "Manufacturer",
+                "Country",
                 "Price",
+                "Status",
                 "Actions",
               ].map((h) => (
                 <th
@@ -287,36 +334,19 @@ export default function MasterDatabase() {
                   key={`${cigar._id}-${index}`}
                   className="h-[66px] hover:bg-[#4A301D]/45"
                 >
-                  <td className="px-6 py-3">
-                    <div className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-md border border-[#CBA24A]/25 bg-[#24170E] text-sm font-semibold text-[#D6AA50]">
-                      {cigar.image ? (
-                        // API images can include blob or non-Next-configured URLs.
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={cigar.image}
-                          alt={cigar.name || "Product"}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        (cigar.name || cigar.brand || "C")
-                          .charAt(0)
-                          .toUpperCase()
-                      )}
-                    </div>
+                  <td className="px-6 py-4 text-sm font-medium text-[#F7E4B3]">
+                    {cigar.name || "—"}
                   </td>
-                  <td className="px-6 py-4 text-sm">
-                    <p className="font-medium text-[#F7E4B3]">
-                      {cigar.brand || "—"}
-                    </p>
-                    <p className="mt-1 text-xs text-[#9A8060]">
-                      {cigar.name || "—"}
-                    </p>
-                  </td>
-                  <Cell>{cigar.wrapper}</Cell>
-                  <Cell capitalize>{cigar.strength}</Cell>
-                  <Cell>{cigar.size}</Cell>
+                  <Cell>{cigar.brand}</Cell>
+                  <Cell>{cigar.manufacturer}</Cell>
+                  <Cell>{cigar.country}</Cell>
                   <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
-                    {Number.isFinite(cigar.price) ? `$${cigar.price.toFixed(2)}` : "—"}
+                    {typeof cigar.price === "number"
+                      ? `$${cigar.price.toFixed(2)}`
+                      : "—"}
+                  </td>
+                  <td className="px-6 py-4">
+                    <StatusBadge status={cigar.status} />
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="inline-flex items-center gap-3 text-[#BFA98A]">
@@ -369,6 +399,12 @@ export default function MasterDatabase() {
         cigar={viewing}
         onOpenChange={(open) => !open && setViewing(null)}
       />
+      <BulkUploadMasterDatabase
+        open={bulkOpen}
+        pending={bulkUploadMutation.isPending}
+        onOpenChange={setBulkOpen}
+        onSubmit={(file) => bulkUploadMutation.mutate(file)}
+      />
       <DeleteModal
         open={Boolean(deleting)}
         title="Delete Product"
@@ -411,6 +447,24 @@ function Cell({
     >
       {children || "—"}
     </td>
+  );
+}
+function StatusBadge({ status = "active" }: { status?: string }) {
+  const normalizedStatus = status.toLowerCase();
+  const style =
+    normalizedStatus === "active"
+      ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
+      : normalizedStatus === "inactive" ||
+          normalizedStatus === "out_of_stock"
+        ? "border-red-500/25 bg-red-950/60 text-red-400"
+        : "border-amber-500/25 bg-amber-950/60 text-amber-400";
+
+  return (
+    <span
+      className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-medium capitalize ${style}`}
+    >
+      {normalizedStatus.replaceAll("_", " ")}
+    </span>
   );
 }
 function Action({

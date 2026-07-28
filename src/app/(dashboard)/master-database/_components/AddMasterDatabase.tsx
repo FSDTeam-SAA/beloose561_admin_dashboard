@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useState, type FormEvent } from "react";
 import { X } from "lucide-react";
 import {
   Dialog,
@@ -18,13 +18,16 @@ import {
 } from "@/components/ui/select";
 import type { Cigar } from "./MasterDatabase";
 
-export type CigarFormValues = Omit<
-  Partial<Cigar>,
-  "_id" | "createdAt" | "updatedAt" | "image"
-> & {
-  price: number;
-  image?: File;
+export type CigarFormValues = {
+  name: string;
+  brand: string;
+  description?: string;
+  manufacturer?: string;
+  country?: string;
+  price?: number;
+  status?: "active" | "under_review" | "out_of_stock" | "inactive";
 };
+
 interface Props {
   open: boolean;
   initial?: Cigar | null;
@@ -36,26 +39,6 @@ interface Props {
 const inputClass =
   "h-10 w-full rounded-[4px] border border-[#A67C3D] bg-[#6A4833] px-3 text-sm text-[#F8E8C4] outline-none placeholder:text-[#B9AA9F]/65 focus:border-[#D6AA50] focus:ring-1 focus:ring-[#D6AA50]/30";
 const labelClass = "space-y-1.5 text-xs font-medium text-[#F4D77B]";
-const pairingOptions = [
-  {
-    value: "Cigar + Whisky",
-    description: "Classic pairing, especially for medium or full-bodied cigars",
-  },
-  { value: "Cigar + Aged Rum", description: "Sweet caramel and vanilla notes" },
-  { value: "Cigar + Cognac / Brandy", description: "Smooth, premium pairing" },
-  {
-    value: "Cigar + Port",
-    description: "Sweetness balances tobacco spice and earthiness",
-  },
-  {
-    value: "Cigar + Coffee / Espresso",
-    description: "Non-alcoholic pairing for creamy or nutty cigars",
-  },
-  {
-    value: "Cigar + Dark Beer / Stout",
-    description: "Rich pairing for bold cigars",
-  },
-];
 
 export default function AddMasterDatabase({
   open,
@@ -65,6 +48,7 @@ export default function AddMasterDatabase({
   onSubmit,
 }: Props) {
   const [errors, setErrors] = useState<Record<string, string>>({});
+
   const changeOpen = (value: boolean) => {
     if (!value) setErrors({});
     onOpenChange(value);
@@ -73,41 +57,35 @@ export default function AddMasterDatabase({
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const data = new FormData(event.currentTarget);
-    const brand = String(data.get("brand") || "").trim();
     const name = String(data.get("name") || "").trim();
+    const brand = String(data.get("brand") || "").trim();
     const priceValue = String(data.get("price") || "").trim();
-    const price = Number(priceValue);
+    const price = priceValue ? Number(priceValue) : undefined;
     const nextErrors: Record<string, string> = {};
 
+    if (!name) nextErrors.name = "Product name is required.";
     if (!brand) nextErrors.brand = "Brand is required.";
-    if (!name) nextErrors.name = "Name is required.";
-    if (!priceValue) nextErrors.price = "Price is required.";
-    else if (!Number.isFinite(price) || price < 0)
+    if (
+      priceValue &&
+      (price === undefined || !Number.isFinite(price) || price < 0)
+    ) {
       nextErrors.price = "Enter a valid price of 0 or more.";
+    }
     if (Object.keys(nextErrors).length) {
       setErrors(nextErrors);
       return;
     }
 
-    const image = data.get("image");
     setErrors({});
     onSubmit({
-      brand,
       name,
-      discoveryType: String(
-        data.get("discoveryType") || "Something Familiar",
-      ),
-      wrapper: String(data.get("wrapper") || "habano"),
-      strength: String(data.get("strength") || "medium"),
-      size: String(data.get("size") || "").trim(),
+      brand,
+      description: String(data.get("description") || "").trim() || undefined,
+      manufacturer:
+        String(data.get("manufacturer") || "").trim() || undefined,
+      country: String(data.get("country") || "").trim() || undefined,
       price,
-      smokingTime: String(data.get("smokingTime") || "").trim(),
-      description: String(data.get("description") || "").trim(),
-      pairingSuggestions: String(data.get("pairingSuggestions") || "")
-        .split(",")
-        .map((value) => value.trim())
-        .filter(Boolean),
-      ...(image instanceof File && image.size > 0 ? { image } : {}),
+      status: String(data.get("status") || "active") as CigarFormValues["status"],
     });
   };
 
@@ -120,10 +98,10 @@ export default function AddMasterDatabase({
       >
         <DialogHeader className="border-b border-[#A67C3D]/35 px-5 pb-4 pt-5">
           <DialogTitle className="font-serif text-xl font-semibold text-[#F1C75B]">
-            {initial ? "Edit Product" : "Add Product"}
+            {initial ? "Edit Product" : "Add Product Manually"}
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Product form
+            Master database product form
           </DialogDescription>
         </DialogHeader>
         <button
@@ -135,6 +113,7 @@ export default function AddMasterDatabase({
         >
           <X className="h-5 w-5" />
         </button>
+
         <form
           key={initial?._id || "new"}
           onSubmit={submit}
@@ -143,90 +122,63 @@ export default function AddMasterDatabase({
         >
           <Field
             name="name"
-            label="Cigar Name"
+            label="Product Name"
+            required
             defaultValue={initial?.name}
             error={errors.name}
           />
           <Field
             name="brand"
             label="Brand"
+            required
             defaultValue={initial?.brand}
             error={errors.brand}
           />
-          <SelectField
-            name="strength"
-            label="Strength *"
-            defaultValue={initial?.strength?.toLowerCase() || ""}
-            placeholder="Choose one"
-            options={["Mild", "Medium", "Medium-Full", "Full"]}
+          <Field
+            name="manufacturer"
+            label="Manufacturer"
+            defaultValue={initial?.manufacturer}
           />
-          <SelectField
-            name="discoveryType"
-            label="Discovery Type *"
-            defaultValue={initial?.discoveryType || "Something Familiar"}
-            options={["Something Familiar", "Try Something New"]}
-            preserveCase
-          />
-          <SelectField
-            name="wrapper"
-            label="Wrapper *"
-            defaultValue={initial?.wrapper?.toLowerCase() || ""}
-            placeholder="Choose one"
-            options={[
-              initial?.wrapper,
-              "Connecticut",
-              "Connecticut Broadleaf",
-              "Natural",
-              "Maduro",
-              "Habano",
-              "Corojo",
-              "Cameroon",
-              "Sumatra",
-              "Oscuro",
-              "Candela",
-              "Colorado",
-              "Criollo",
-              "San Andrés",
-            ].filter(
-              (value, index, values): value is string =>
-                Boolean(value) &&
-                values.findIndex(
-                  (item) => item?.toLowerCase() === value?.toLowerCase(),
-                ) === index,
-            )}
-          />
-          <Field name="size" label="Size" defaultValue={initial?.size} />
-          <SelectField
-            name="smokingTime"
-            label="Smoking Time *"
-            defaultValue={initial?.smokingTime || ""}
-            placeholder="Choose one"
-            options={["30", "60", "90", "120+"]}
-            preserveCase
+          <Field
+            name="country"
+            label="Country"
+            defaultValue={initial?.country}
           />
           <Field
             name="price"
-            label="Retail Price"
+            label="Price"
             type="number"
             min="0"
             step="0.01"
-            defaultValue={initial?.price ?? 0}
+            defaultValue={initial?.price}
             error={errors.price}
           />
-          <TextArea
-            name="description"
-            label="Description"
-            defaultValue={initial?.description}
-          />
-          <PairingMultiSelect
-            key={initial?._id || "new-pairings"}
-            defaultValues={initial?.pairingSuggestions}
-          />
-          <ImagePicker
-            key={initial?._id ? `edit-image-${initial._id}` : "add-image"}
-            defaultImage={initial?.image || undefined}
-            productName={initial?.name || undefined}
-          />
+          <label className={labelClass}>
+            <span>Status</span>
+            <Select name="status" defaultValue={initial?.status || "active"}>
+              <SelectTrigger className={`${inputClass} shadow-none focus-visible:ring-0`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                position="popper"
+                className="border-[#CBA24A]/25 bg-[#4A2D1D] text-[#F7E4B3]"
+              >
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="under_review">Under Review</SelectItem>
+                <SelectItem value="out_of_stock">Out of Stock</SelectItem>
+                <SelectItem value="inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </label>
+          <label className={`${labelClass} sm:col-span-2`}>
+            <span>Description</span>
+            <textarea
+              name="description"
+              defaultValue={initial?.description}
+              className={`${inputClass} h-24 resize-none py-2.5 leading-5`}
+            />
+          </label>
+
           <div className="grid grid-cols-2 gap-3 pt-1 sm:col-span-2">
             <button
               type="button"
@@ -274,215 +226,6 @@ function Field({
           {error}
         </span>
       )}
-    </label>
-  );
-}
-function TextArea({
-  name,
-  label,
-  defaultValue,
-}: {
-  name: string;
-  label: string;
-  defaultValue?: string;
-}) {
-  return (
-    <label className={`${labelClass} sm:col-span-2`}>
-      <span>{label}</span>
-      <textarea
-        name={name}
-        defaultValue={defaultValue}
-        className={`${inputClass} h-20 resize-none py-2.5 leading-5`}
-      />
-    </label>
-  );
-}
-function SelectField({
-  name,
-  label,
-  defaultValue,
-  placeholder,
-  options,
-  values,
-  preserveCase,
-}: {
-  name: string;
-  label: string;
-  defaultValue: string;
-  placeholder?: string;
-  options: string[];
-  values?: string[];
-  preserveCase?: boolean;
-}) {
-  return (
-    <label className={labelClass}>
-      <span>{label}</span>
-      <Select name={name} defaultValue={defaultValue || undefined}>
-        <SelectTrigger
-          className={`${inputClass} shadow-none focus-visible:ring-0`}
-        >
-          <SelectValue placeholder={placeholder} />
-        </SelectTrigger>
-        <SelectContent
-          position="popper"
-          className="border-[#CBA24A]/25 bg-[#4A2D1D] text-[#F7E4B3]"
-        >
-          {options.map((option, index) => (
-            <SelectItem
-              key={option}
-              value={
-                values?.[index] ||
-                (preserveCase ? option : option.toLowerCase())
-              }
-              className="focus:bg-[#D6AA50]/15 focus:text-[#F7E4B3]"
-            >
-              {option}
-              {name === "smokingTime" ? " minutes" : ""}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </label>
-  );
-}
-
-function PairingMultiSelect({
-  defaultValues = [],
-}: {
-  defaultValues?: string[];
-}) {
-  const [selected, setSelected] = useState<string[]>(defaultValues);
-  const toggle = (value: string) =>
-    setSelected((current) =>
-      current.includes(value)
-        ? current.filter((item) => item !== value)
-        : [...current, value],
-    );
-
-  return (
-    <div className={`${labelClass} sm:col-span-2`}>
-      <span>Pairing Suggestions</span>
-      <input
-        type="hidden"
-        name="pairingSuggestions"
-        value={selected.join(",")}
-      />
-      {selected.length > 0 && (
-        <div className="flex flex-wrap gap-1.5">
-          {selected.map((value) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => toggle(value)}
-              className="inline-flex items-center gap-1 rounded-full border border-[#D6AA50]/50 bg-[#2E1B0D] px-2.5 py-1 text-[10px] text-[#F4D77B]"
-            >
-              {value}
-              <X className="h-3 w-3" />
-            </button>
-          ))}
-        </div>
-      )}
-      <details className="group relative">
-        <summary
-          className={`${inputClass} flex cursor-pointer list-none items-center justify-between`}
-        >
-          <span
-            className={selected.length ? "text-[#F8E8C4]" : "text-[#B9AA9F]/65"}
-          >
-            {selected.length
-              ? `${selected.length} pairing${selected.length > 1 ? "s" : ""} selected`
-              : "Choose pairings"}
-          </span>
-          <span className="text-[#CDB37A] transition group-open:rotate-180">
-            ⌄
-          </span>
-        </summary>
-        <div className="absolute z-50 mt-1 max-h-72 w-full overflow-y-auto rounded-[4px] border border-[#A67C3D] bg-[#4A2D1D] p-1 shadow-2xl [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {pairingOptions.map((option) => (
-            <label
-              key={option.value}
-              className="flex cursor-pointer gap-3 rounded px-3 py-2.5 hover:bg-[#D6AA50]/10"
-            >
-              <input
-                type="checkbox"
-                checked={selected.includes(option.value)}
-                onChange={() => toggle(option.value)}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-[#D6AA50]"
-              />
-              <span>
-                <span className="block text-xs font-medium text-[#F8E8C4]">
-                  {option.value}
-                </span>
-                <span className="mt-1 block text-[10px] font-normal text-[#CDB37A]">
-                  {option.description}
-                </span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </details>
-      <span className="block text-[10px] font-normal text-[#CDB37A]">
-        Choose one or more. Selected pairings can be removed above.
-      </span>
-    </div>
-  );
-}
-
-function ImagePicker({
-  defaultImage,
-  productName,
-}: {
-  defaultImage?: string;
-  productName?: string;
-}) {
-  const [preview, setPreview] = useState(defaultImage);
-
-  useEffect(() => {
-    return () => {
-      if (preview?.startsWith("blob:")) URL.revokeObjectURL(preview);
-    };
-  }, [preview]);
-
-  const selectImage = (file?: File) => {
-    setPreview((current) => {
-      if (current?.startsWith("blob:")) URL.revokeObjectURL(current);
-      return file ? URL.createObjectURL(file) : defaultImage;
-    });
-  };
-
-  return (
-    <label className={`${labelClass} sm:col-span-2`}>
-      <span>Image</span>
-      <span className="flex min-h-20 items-center gap-3 rounded-[4px] border border-[#A67C3D] bg-[#6A4833]/55 p-2">
-        <span className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-[#3E290F] text-xl text-[#D6AA50]">
-          {preview ? (
-            // This preview can be a blob URL or an API-provided URL that is not
-            // registered in next.config, so it should not use next/image.
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={preview}
-              alt={productName || "Product preview"}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            "C"
-          )}
-        </span>
-        <span className="min-w-0">
-          <input
-            name="image"
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={(event) => selectImage(event.target.files?.[0])}
-            className="block max-w-full text-xs text-[#CDB37A] file:mr-3 file:cursor-pointer file:rounded file:border-0 file:bg-[#E4AD33] file:px-4 file:py-2 file:text-xs file:font-semibold file:text-[#3A2417]"
-          />
-          <span className="mt-2 block truncate text-[10px] font-normal text-[#CDB37A]">
-            {preview
-              ? "Current image preview. Choose a file to replace it."
-              : "Large images are optimized automatically before upload."}
-          </span>
-        </span>
-      </span>
     </label>
   );
 }
