@@ -67,6 +67,22 @@ export const pageConfig: Record<
     title: "Content Management",
     description: "Manage customer and retailer website sections",
   },
+  "/home-settings/banner": {
+    title: "Banner Settings",
+    description: "Manage the retailer homepage banner content",
+  },
+  "/home-settings/for-retailers": {
+    title: "For Retailers",
+    description: "Manage the retailer-focused homepage section",
+  },
+  "/home-settings/the-platform": {
+    title: "The Platform",
+    description: "Manage the retailer platform overview and features",
+  },
+  "/home-settings/how-it-works": {
+    title: "How It Works",
+    description: "Manage the retailer homepage process steps",
+  },
    "/countries": {
     title: "Countries",
     description: "Welcome back! Here's what's happening in valoura travel today.",

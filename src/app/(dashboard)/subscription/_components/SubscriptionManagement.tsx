@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Search, Trash2 } from "lucide-react";
+import { Eye, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -11,6 +11,9 @@ import DeleteModal from "@/components/deleteModal/DeleteModal";
 import DetaislSubscriptionModal, {
   type Subscription,
 } from "./DetaislSubscriptionModal";
+import SubscriptionFormModal, {
+  type SubscriptionFormValues,
+} from "./SubscriptionFormModal";
 
 interface ListResponse {
   success: boolean;
@@ -48,6 +51,8 @@ export default function SubscriptionManagement() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selected, setSelected] = useState<Subscription | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Subscription | null>(null);
   const [deleting, setDeleting] = useState<Subscription | null>(null);
   const subscriberLimit = 10;
 
@@ -116,6 +121,51 @@ export default function SubscriptionManagement() {
       ),
   });
 
+  const saveMutation = useMutation({
+    mutationFn: async (values: SubscriptionFormValues) => {
+      if (!accessToken)
+        throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch(
+        editing
+          ? `${getApiBaseUrl()}/subscribe/${editing._id}`
+          : `${getApiBaseUrl()}/subscribe`,
+        {
+          method: editing ? "PATCH" : "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(values),
+        },
+      );
+      const result = (await response
+        .json()
+        .catch(() => null)) as ActionResponse | null;
+      if (!response.ok || !result?.success) {
+        throw new Error(
+          result?.message ||
+            `Unable to ${editing ? "update" : "create"} subscription.`,
+        );
+      }
+      return result;
+    },
+    onSuccess: async (result) => {
+      const wasEditing = Boolean(editing);
+      setFormOpen(false);
+      setEditing(null);
+      setSubscriberPage(1);
+      await queryClient.invalidateQueries({ queryKey: ["subscriptions"] });
+      toast.success(
+        result.message ||
+          `Subscription ${wasEditing ? "updated" : "created"} successfully.`,
+      );
+    },
+    onError: (error: unknown) =>
+      toast.error(
+        error instanceof Error ? error.message : "Unable to save subscription.",
+      ),
+  });
+
   const subscriptions = subscriptionsQuery.data ?? [];
   const subscribers = subscriptions.flatMap((subscription) =>
     (subscription.user ?? []).map((user) => ({ user, subscription })),
@@ -137,15 +187,28 @@ export default function SubscriptionManagement() {
               Available subscription plans and pricing
             </p>
           </div>
-          <div className="relative w-full max-w-[360px]">
-            <Input
-              type="search"
-              placeholder="Search subscription plans..."
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              className="h-10 w-full rounded-lg border border-[#CBA24A]/30 bg-[#1C120C]/90 pl-10 pr-4 text-xs text-[#F7E4B3] placeholder:text-stone-600 focus:border-[#CBA24A]/80 focus-visible:ring-0"
-            />
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <div className="relative w-full sm:w-[320px]">
+              <Input
+                type="search"
+                placeholder="Search subscription plans..."
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                className="h-10 w-full rounded-lg border border-[#CBA24A]/30 bg-[#1C120C]/90 pl-10 pr-4 text-xs text-[#F7E4B3] placeholder:text-stone-600 focus:border-[#CBA24A]/80 focus-visible:ring-0"
+              />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-500" />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+              className="inline-flex h-10 cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#D6AA50] px-4 text-xs font-semibold text-[#342315] transition-colors hover:bg-[#E7BF69]"
+            >
+              <Plus className="h-4 w-4" />
+              Add Subscription
+            </button>
           </div>
         </div>
 
@@ -222,6 +285,18 @@ export default function SubscriptionManagement() {
                         </button>
                         <button
                           type="button"
+                          onClick={() => {
+                            setEditing(subscription);
+                            setFormOpen(true);
+                          }}
+                          title="Edit Subscription"
+                          aria-label={`Edit ${subscription.planName || "subscription"}`}
+                          className="cursor-pointer p-1 text-stone-400 hover:text-[#D6AA50]"
+                        >
+                          <Pencil className="h-[18px] w-[18px]" />
+                        </button>
+                        <button
+                          type="button"
                           onClick={() => setDeleting(subscription)}
                           title="Delete Subscription"
                           className="cursor-pointer p-1 text-stone-400 hover:text-red-500"
@@ -257,6 +332,7 @@ export default function SubscriptionManagement() {
                   "Contact",
                   "Plan",
                   "Billing Cycle",
+                  "Price",
                   "Status",
                   "Expiry",
                 ].map((heading) => (
@@ -310,6 +386,9 @@ export default function SubscriptionManagement() {
                       <td className="px-6 py-4 text-sm capitalize text-[#BFA98A]">
                         {subscription.plan || "—"}
                       </td>
+                      <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
+                        ${Number(subscription.price || 0).toLocaleString()}
+                      </td>
                       <td className="px-6 py-4">
                         <span
                           className={`inline-flex rounded-full border px-2.5 py-1 text-[10px] font-semibold capitalize ${
@@ -347,6 +426,16 @@ export default function SubscriptionManagement() {
         subscription={selected}
         onOpenChange={(open) => {
           if (!open) setSelected(null);
+        }}
+      />
+      <SubscriptionFormModal
+        open={formOpen}
+        initial={editing}
+        pending={saveMutation.isPending}
+        onSubmit={(values) => saveMutation.mutate(values)}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setEditing(null);
         }}
       />
       <DeleteModal
@@ -393,7 +482,7 @@ function SubscriberMessageRow({
   return (
     <tr>
       <td
-        colSpan={6}
+        colSpan={7}
         className={`h-28 px-6 text-center text-sm ${error ? "text-red-400" : "text-[#9A8060]"}`}
       >
         {text}

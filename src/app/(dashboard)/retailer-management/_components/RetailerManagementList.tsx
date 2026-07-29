@@ -34,7 +34,7 @@ interface UpdateUserResponse {
   message?: string;
 }
 
-type RetailerApprovalStatus = "pending" | "approved";
+type RetailerVerificationStatus = "unverified" | "verified";
 
 function getApiBaseUrl() {
   const baseUrl = process.env.NEXT_PUBLIC_BACKEND_API_URL;
@@ -115,7 +115,7 @@ export default function RetailerManagementList() {
       status,
     }: {
       userId: string;
-      status: RetailerApprovalStatus;
+      status: RetailerVerificationStatus;
     }) => {
       if (!accessToken) throw new Error("You are not authorized.");
 
@@ -126,7 +126,7 @@ export default function RetailerManagementList() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(
-          status === "approved"
+          status === "verified"
             ? { status: "active", verfied: "verified" }
             : { verfied: "pending" },
         ),
@@ -213,9 +213,9 @@ export default function RetailerManagementList() {
               retailers.map((retailer) => {
                 const isVerified =
                   retailer.userId?.verfied?.toLowerCase() === "verified";
-                const status: RetailerApprovalStatus = isVerified
-                  ? "approved"
-                  : "pending";
+                const status: RetailerVerificationStatus = isVerified
+                  ? "verified"
+                  : "unverified";
                 const isUpdatingStatus =
                   statusMutation.isPending &&
                   statusMutation.variables?.userId === retailer.userId?._id;
@@ -236,14 +236,14 @@ export default function RetailerManagementList() {
                           if (!retailer.userId?._id) return;
                           statusMutation.mutate({
                             userId: retailer.userId._id,
-                            status: value as RetailerApprovalStatus,
+                            status: value as RetailerVerificationStatus,
                           });
                         }}
                       >
                         <SelectTrigger
                           aria-label={`Update ${retailer.storeName} status`}
                           className={`h-8 w-[110px] cursor-pointer rounded-md px-2 text-[10px] font-semibold focus:ring-0 disabled:cursor-not-allowed ${
-                            status === "approved"
+                            status === "verified"
                               ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
                               : "border-amber-500/25 bg-amber-950/60 text-amber-400"
                           }`}
@@ -252,16 +252,16 @@ export default function RetailerManagementList() {
                         </SelectTrigger>
                         <SelectContent className="border-[#CBA24A]/25 bg-[#4A2D1D] text-[#F7E4B3]">
                           <SelectItem
-                            value="pending"
+                            value="unverified"
                             className="focus:bg-amber-950/60 focus:text-amber-400"
                           >
-                            Pending
+                            Unverified
                           </SelectItem>
                           <SelectItem
-                            value="approved"
+                            value="verified"
                             className="focus:bg-emerald-950/60 focus:text-emerald-400"
                           >
-                            Approved
+                            Verified
                           </SelectItem>
                         </SelectContent>
                       </Select>
