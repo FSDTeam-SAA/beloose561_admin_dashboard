@@ -29,8 +29,12 @@ export interface SubmittedRetailer {
 
 export interface Cigar {
   _id: string;
-  name: string;
+  productLine: string;
   brand: string;
+  estimatedSmokingTime?: string;
+  suggestedRetailPriceEach?: number;
+  suggestedRetailPricePerBox?: number;
+  name?: string;
   discoveryType?: string;
   wrapper?: string;
   strength?: string;
@@ -304,11 +308,12 @@ export default function MasterDatabase() {
           <thead className="bg-[#1B1009]">
             <tr>
               {[
-                "Product Name",
+                "Product Line",
                 "Brand",
-                "Manufacturer",
-                "Country",
-                "Price",
+                "Strength",
+                "Wrapper",
+                "Price Each",
+                "Price Box",
                 "Status",
                 "Actions",
               ].map((h) => (
@@ -335,14 +340,19 @@ export default function MasterDatabase() {
                   className="h-[66px] hover:bg-[#4A301D]/45"
                 >
                   <td className="px-6 py-4 text-sm font-medium text-[#F7E4B3]">
-                    {cigar.name || "—"}
+                    {cigar.productLine || cigar.name || "—"}
                   </td>
                   <Cell>{cigar.brand}</Cell>
-                  <Cell>{cigar.manufacturer}</Cell>
-                  <Cell>{cigar.country}</Cell>
+                  <Cell>{cigar.strength}</Cell>
+                  <Cell>{cigar.wrapper}</Cell>
                   <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
-                    {typeof cigar.price === "number"
-                      ? `$${cigar.price.toFixed(2)}`
+                    {typeof cigar.suggestedRetailPriceEach === "number"
+                      ? `$${cigar.suggestedRetailPriceEach.toFixed(2)}`
+                      : "—"}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
+                    {typeof cigar.suggestedRetailPricePerBox === "number"
+                      ? `$${cigar.suggestedRetailPricePerBox.toFixed(2)}`
                       : "—"}
                   </td>
                   <td className="px-6 py-4">
@@ -408,10 +418,10 @@ export default function MasterDatabase() {
       <DeleteModal
         open={Boolean(deleting)}
         title="Delete Product"
-        itemName={deleting?.name}
+        itemName={deleting?.productLine || deleting?.name}
         description={
           deleting
-            ? `Are you sure you want to delete ${deleting.name}? This action cannot be undone.`
+            ? `Are you sure you want to delete ${deleting.productLine || deleting.name}? This action cannot be undone.`
             : undefined
         }
         disabled={deleteMutation.isPending}
@@ -426,7 +436,7 @@ function RowMessage({ text, error }: { text: string; error?: boolean }) {
   return (
     <tr>
       <td
-        colSpan={7}
+        colSpan={8}
         className={`px-6 py-14 text-center text-sm ${error ? "text-red-400" : "text-[#9A8060]"}`}
       >
         {text}

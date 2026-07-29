@@ -42,14 +42,21 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
 
   const productDetails: Array<[string, string | undefined]> = cigar
     ? [
-        ["Product Name", cigar.name],
+        ["Product Line", cigar.productLine || cigar.name],
         ["Brand", cigar.brand],
-        ["Manufacturer", cigar.manufacturer],
-        ["Country", cigar.country],
+        ["Strength", cigar.strength],
+        ["Wrapper", cigar.wrapper],
+        ["Estimated Smoking Time", cigar.estimatedSmokingTime],
         [
-          "Price",
-          typeof cigar.price === "number"
-            ? `$${cigar.price.toFixed(2)}`
+          "Retail Price (Each)",
+          typeof cigar.suggestedRetailPriceEach === "number"
+            ? `$${cigar.suggestedRetailPriceEach.toFixed(2)}`
+            : "—",
+        ],
+        [
+          "Retail Price (Per Box)",
+          typeof cigar.suggestedRetailPricePerBox === "number"
+            ? `$${cigar.suggestedRetailPricePerBox.toFixed(2)}`
             : "—",
         ],
         ["Created At", formatDate(cigar.createdAt)],
@@ -104,7 +111,7 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
           </div>
           <div className="min-w-0">
             <h3 className="truncate font-serif text-xl text-[#F7E4B3]">
-              {cigar?.name || "Unnamed Product"}
+              {cigar?.productLine || cigar?.name || "Unnamed Product"}
             </h3>
             <p className="mt-1 truncate text-sm text-[#BFA98A]">
               {cigar?.brand || "—"}
@@ -130,10 +137,10 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
 
         <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
           <p className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">
-            Description
+            Pairing Suggestions
           </p>
           <p className="whitespace-pre-wrap text-sm leading-6 text-[#F7E4B3]">
-            {cigar?.description || "—"}
+            {cigar?.pairingSuggestions?.join(", ") || "—"}
           </p>
         </section>
 
