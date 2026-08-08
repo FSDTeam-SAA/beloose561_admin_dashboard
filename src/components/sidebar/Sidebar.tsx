@@ -9,11 +9,13 @@ import {
   ClipboardCheck,
   Database,
   FileText,
+  Gift,
   ImageIcon,
   KeyRound,
   LayoutDashboard,
   LogOut,
   ReceiptText,
+  Share2,
   Settings as SettingsIcon,
   Sparkles,
   Store,
@@ -89,6 +91,16 @@ const navigation = [
         name: "How It Works",
         href: "/home-settings/how-it-works",
         icon: Workflow,
+      },
+      {
+        name: "Benefits",
+        href: "/home-settings/benefits",
+        icon: Gift,
+      },
+      {
+        name: "Contact Info",
+        href: "/home-settings/midea-info",
+        icon: Share2,
       },
     ],
   },
@@ -188,7 +200,7 @@ export function Sidebar({ open, setOpen }: SidebarProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 space-y-2 flex flex-col items-center px-3 overflow-y-auto">
+        <nav className="flex-1 space-y-2 flex flex-col items-center overflow-y-auto px-3 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {navigation.map((item) => {
             if ("children" in item && item.children) {
               const isChildActive = item.children.some(

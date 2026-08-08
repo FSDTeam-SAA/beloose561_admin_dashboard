@@ -83,6 +83,14 @@ export const pageConfig: Record<
     title: "How It Works",
     description: "Manage the retailer homepage process steps",
   },
+  "/home-settings/benefits": {
+    title: "Retailer Benefits",
+    description: "Manage the retailer benefits shown on the homepage",
+  },
+  "/home-settings/midea-info": {
+    title: "Media Information",
+    description: "Manage public contact details and social media links",
+  },
    "/countries": {
     title: "Countries",
     description: "Welcome back! Here's what's happening in valoura travel today.",
