@@ -8,7 +8,7 @@ import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
-type Benefit = { _id: string; images?: string[]; video?: string[]; title?: string; subTitle?: string; features?: string[] };
+type Benefit = { _id: string; images?: string[]; video?: string[]; title?: string; subTitle?: string; features?: string[]; isActive?: boolean };
 type ApiResponse<T> = { success?: boolean; message?: string; data?: T };
 type MediaSlot = { source: "existing"; url: string; kind: "image" | "video" } | { source: "new"; file: File; url: string; kind: "image" | "video" } | null;
 
@@ -58,9 +58,30 @@ export default function BenefitsPage() {
     },
     onError: (error: Error) => toast.error(error.message),
   });
+  const toggleStatus = useMutation({
+    mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
+      if (!token) throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch(`${apiBase()}/retailer-benefits/${id}`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive }),
+      });
+      const result = (await response.json().catch(() => null)) as ApiResponse<Benefit> | null;
+      if (!response.ok) throw new Error(result?.message || "Unable to update benefits visibility.");
+      return result;
+    },
+    onSuccess: async (result) => {
+      await queryClient.invalidateQueries({ queryKey: ["retailer-benefits"] });
+      toast.success(result?.message || "Benefits visibility updated.");
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const primaryBenefit = query.data?.[0];
 
   return <div className="space-y-6">
     <header><p className="text-[10px] font-semibold uppercase tracking-[.24em] text-[#D6AA50]">Homepage content</p><h1 className="mt-1 font-serif text-2xl text-[#F7E4B3]">Retailer Benefits</h1><p className="mt-1 max-w-2xl text-xs leading-5 text-[#9A8060]">Manage the copy and the three image or video positions shown in the homepage benefits section.</p></header>
+    {primaryBenefit && <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#CBA24A]/30 bg-[#2A1E10] p-5 shadow-[0_16px_45px_rgba(0,0,0,.16)]"><div><p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#D6AA50]">Section visibility</p><h2 className="mt-1 font-serif text-lg text-[#F7E4B3]">Benefits section</h2><p className="mt-1 text-xs text-[#9A8060]">Show or hide this section on the homepage without opening the editor.</p></div><div className="flex items-center gap-3"><span className={`text-xs font-semibold ${primaryBenefit.isActive !== false ? "text-emerald-400" : "text-[#9A8060]"}`}>{primaryBenefit.isActive !== false ? "Active" : "Inactive"}</span><button type="button" role="switch" aria-checked={primaryBenefit.isActive !== false} aria-label="Toggle benefits section visibility" disabled={toggleStatus.isPending} onClick={() => toggleStatus.mutate({ id: primaryBenefit._id, isActive: primaryBenefit.isActive === false })} className={`relative h-7 w-12 cursor-pointer rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${primaryBenefit.isActive !== false ? "border-emerald-400/50 bg-emerald-500" : "border-[#705A3E] bg-[#1B1009]"}`}><span className={`absolute left-1 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow transition-transform ${primaryBenefit.isActive !== false ? "translate-x-5" : "translate-x-0"}`} /></button></div></section>}
     {query.isLoading ? <State loading text="Loading retailer benefits..." /> : query.isError ? <State error text={query.error.message} /> : !query.data?.length ? <State text="No retailer benefits have been added yet." /> : <div className="space-y-6">{query.data.map((item) => {
       const media = existingMedia(item);
       return <article key={item._id} className="overflow-hidden rounded-2xl border border-[#CBA24A]/30 bg-[#2A1E10] shadow-[0_18px_55px_rgba(0,0,0,.2)]"><div className="grid xl:grid-cols-[minmax(320px,42%)_1fr]">
