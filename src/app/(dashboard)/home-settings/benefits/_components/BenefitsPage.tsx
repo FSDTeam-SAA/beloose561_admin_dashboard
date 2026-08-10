@@ -70,11 +70,19 @@ export default function BenefitsPage() {
       if (!response.ok) throw new Error(result?.message || "Unable to update benefits visibility.");
       return result;
     },
-    onSuccess: async (result) => {
-      await queryClient.invalidateQueries({ queryKey: ["retailer-benefits"] });
+    onMutate: async ({ id, isActive }) => {
+      await queryClient.cancelQueries({ queryKey: ["retailer-benefits"] });
+      const previous = queryClient.getQueryData<Benefit[]>(["retailer-benefits"]);
+      queryClient.setQueryData<Benefit[]>(["retailer-benefits"], (current) => current?.map((item) => item._id === id ? { ...item, isActive } : item));
+      return { previous };
+    },
+    onSuccess: (result) => {
       toast.success(result?.message || "Benefits visibility updated.");
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error, _variables, context) => {
+      if (context?.previous) queryClient.setQueryData(["retailer-benefits"], context.previous);
+      toast.error(error.message);
+    },
   });
 
   const primaryBenefit = query.data?.[0];
