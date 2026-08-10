@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Image from "next/image";
-import { ImageIcon, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ImageIcon, Loader2, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
@@ -34,6 +34,23 @@ interface ActionResponse {
   data?: HowItWorksItem;
 }
 
+interface HowItWorksTitle {
+  _id: string;
+  title?: string;
+}
+
+interface TitleListResponse {
+  success?: boolean;
+  message?: string;
+  data?: HowItWorksTitle[];
+}
+
+interface TitleActionResponse {
+  success?: boolean;
+  message?: string;
+  data?: HowItWorksTitle;
+}
+
 function apiBase() {
   const url = process.env.NEXT_PUBLIC_BACKEND_API_URL;
   if (!url) throw new Error("Backend API URL is not configured.");
@@ -48,6 +65,41 @@ export default function HowItWorks() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<HowItWorksItem | null>(null);
   const [deleting, setDeleting] = useState<HowItWorksItem | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+  const [editingTitle, setEditingTitle] = useState(false);
+
+  const titleQuery = useQuery({
+    queryKey: ["retailer-howitwork-title"],
+    queryFn: async () => {
+      const params = new URLSearchParams({ page: "1", limit: "1", sortBy: "createdAt", sortOrder: "desc" });
+      const response = await fetch(`${apiBase()}/retailer-howitwork-title?${params}`);
+      const result = (await response.json().catch(() => null)) as TitleListResponse | null;
+      if (!response.ok || !Array.isArray(result?.data)) {
+        throw new Error(result?.message || "Unable to load the section title.");
+      }
+      return result.data[0] ?? null;
+    },
+  });
+
+  const titleMutation = useMutation({
+    mutationFn: async ({ id, title }: { id?: string; title: string }) => {
+      if (!token) throw new Error("Your session has expired.");
+      const response = await fetch(id ? `${apiBase()}/retailer-howitwork-title/${id}` : `${apiBase()}/retailer-howitwork-title`, {
+        method: id ? "PATCH" : "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+      const result = (await response.json().catch(() => null)) as TitleActionResponse | null;
+      if (!response.ok || !result) throw new Error(result?.message || "Unable to save the section title.");
+      return result;
+    },
+    onSuccess: async (result) => {
+      setEditingTitle(false);
+      await queryClient.invalidateQueries({ queryKey: ["retailer-howitwork-title"] });
+      toast.success(result.message || "Section title updated successfully.");
+    },
+    onError: (error: unknown) => toast.error(error instanceof Error ? error.message : "Title update failed."),
+  });
 
   const itemsQuery = useQuery({
     queryKey: ["retailer-howitwork"],
@@ -160,6 +212,18 @@ export default function HowItWorks() {
           Add Step
         </button>
       </header>
+
+      <section className="rounded-2xl border border-[#CBA24A]/30 bg-[#2A1E10] p-5 shadow-[0_16px_45px_rgba(0,0,0,.16)] sm:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.2em] text-[#D6AA50]">Section heading</p>
+            <h3 className="mt-1 font-serif text-lg text-[#F7E4B3]">How It Works Title</h3>
+            <p className="mt-1 text-xs text-[#9A8060]">This heading appears above the three steps on the homepage.</p>
+          </div>
+          {!editingTitle && !titleQuery.isLoading && <button type="button" onClick={() => { setTitleDraft(titleQuery.data?.title || ""); setEditingTitle(true); }} className="inline-flex h-9 cursor-pointer items-center gap-2 rounded-md border border-[#D6AA50]/45 px-3 text-[11px] font-semibold text-[#F1C75B] hover:bg-[#D6AA50] hover:text-[#342315]"><Pencil className="h-3.5 w-3.5" /> Edit title</button>}
+        </div>
+        {titleQuery.isLoading ? <div className="mt-5 flex items-center gap-2 text-xs text-[#9A8060]"><Loader2 className="h-4 w-4 animate-spin" /> Loading title...</div> : titleQuery.isError ? <p className="mt-5 text-xs text-red-400">{titleQuery.error.message}</p> : editingTitle ? <form className="mt-5 flex flex-col gap-3 sm:flex-row" onSubmit={(event) => { event.preventDefault(); const title = titleDraft.trim(); if (!title) return toast.error("Section title is required."); titleMutation.mutate({ id: titleQuery.data?._id, title }); }}><input autoFocus value={titleDraft} onChange={(event) => setTitleDraft(event.target.value)} placeholder="Enter the homepage section title" className={`${inputClass} flex-1`} /><div className="flex gap-2"><button type="button" disabled={titleMutation.isPending} onClick={() => setEditingTitle(false)} className="h-10 cursor-pointer rounded-md border border-[#CBA24A]/30 px-4 text-xs text-[#BFA98A] disabled:cursor-not-allowed disabled:opacity-60">Cancel</button><button disabled={titleMutation.isPending} className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-md bg-[#D6AA50] px-4 text-xs font-semibold text-[#342315] disabled:cursor-not-allowed disabled:opacity-60">{titleMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save title</button></div></form> : <p className="mt-5 font-serif text-2xl text-[#F7E4B3]">{titleQuery.data?.title || "No section title has been added yet."}</p>}
+      </section>
 
       {itemsQuery.isLoading ? (
         <State text="Loading How It Works steps..." />
