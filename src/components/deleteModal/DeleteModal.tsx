@@ -70,6 +70,9 @@ export default function DeleteModal({
               Cancel
             </button>
           </DialogClose>
+
+
+          
           <button
             type="button"
             disabled={disabled}
