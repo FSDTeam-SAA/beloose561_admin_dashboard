@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Download, FileSpreadsheet, Upload, X } from "lucide-react";
+import { Download, FileSpreadsheet, Info, Upload, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,60 @@ interface Props {
 }
 
 const supportedExtensions = [".csv", ".xlsx", ".xls"];
+
+const templateHeaders = [
+  "Product Line",
+  "Brand",
+  "UPC Codes",
+  "Name",
+  "Manufacturer",
+  "Country",
+  "Origin Region",
+  "Vitola",
+  "Strength",
+  "Wrapper",
+  "Binder",
+  "Filler",
+  "Size",
+  "Length",
+  "Ring Gauge",
+  "Flavor Notes",
+  "Description",
+  "Why You'll Like This",
+  "Image",
+  "Estimated Smoking Time",
+  "Pairing Suggestions",
+  "Suggested Retail Price (Each)",
+  "Suggested Retail Price (Box)",
+  "Status",
+];
+
+const sampleRow = [
+  "Gran Reserva",
+  "Arturo Fuente",
+  "0716103012345|0716103012352",
+  "Gran Reserva Robusto",
+  "Tabacalera A. Fuente",
+  "Dominican Republic",
+  "Santiago",
+  "Robusto",
+  "Medium",
+  "Ecuadorian Habano",
+  "Dominican",
+  "Dominican|Nicaraguan",
+  "5 x 50",
+  "5.0",
+  "50",
+  "cedar|cocoa|leather",
+  "Premium handmade cigar with rich Dominican fillers.",
+  "Smooth and balanced flavor profile perfect for any occasion.",
+  "https://example.com/cigar.jpg",
+  "60",
+  "Cigar + Coffee / Espresso|Cigar + Whiskey",
+  "18.50",
+  "185.00",
+  "active",
+];
 
 export default function BulkUploadMasterDatabase({
   open,
@@ -57,6 +111,22 @@ export default function BulkUploadMasterDatabase({
     onSubmit(file);
   };
 
+  const downloadCsvTemplate = () => {
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [
+        templateHeaders.map((h) => `"${h}"`).join(","),
+        sampleRow.map((v) => `"${v}"`).join(","),
+      ].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "Humidor411-MasterDatabase-Template.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <Dialog
       open={open}
@@ -65,14 +135,14 @@ export default function BulkUploadMasterDatabase({
       <DialogContent
         showCloseButton={false}
         overlayClassName="bg-black/75 backdrop-blur-[2px]"
-        className="w-[calc(100%-1.5rem)] max-w-[520px] gap-0 overflow-hidden rounded-lg border border-[#A67C3D]/70 bg-[#4A2D1D] p-0 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]"
+        className="w-[calc(100%-1.5rem)] max-w-[560px] gap-0 overflow-hidden rounded-lg border border-[#A67C3D]/70 bg-[#4A2D1D] p-0 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]"
       >
         <DialogHeader className="border-b border-[#A67C3D]/35 px-5 pb-4 pt-5">
           <DialogTitle className="font-serif text-xl font-semibold text-[#F1C75B]">
-            Add Bulk Data
+            Bulk Upload Master Cigars
           </DialogTitle>
           <DialogDescription className="mt-1 text-xs text-[#CDB37A]">
-            Upload a CSV or Excel file to add multiple products at once.
+            Upload a CSV or Excel file to batch-import master cigars into the central database.
           </DialogDescription>
         </DialogHeader>
         <button
@@ -89,21 +159,22 @@ export default function BulkUploadMasterDatabase({
           <div className="flex items-center justify-between gap-4 rounded-lg border border-[#D6AA50]/25 bg-[#342315]/45 p-3">
             <div className="min-w-0">
               <p className="text-xs font-medium text-[#F8E8C4]">
-                Download Excel Template
+                Download Standard Template
               </p>
-              <p className="mt-1 truncate text-[10px] text-[#CDB37A]">
-                Humidor411-MasterDatabase.xlsx
+              <p className="mt-0.5 truncate text-[10px] text-[#CDB37A]">
+                Includes all 24 master fields (UPC, vitola, filler, pricing, etc.)
               </p>
             </div>
-            <a
-              href="/images/Humidor411-MasterDatabase.xlsx"
-              download="Humidor411-MasterDatabase.xlsx"
-              className="flex h-9 shrink-0 items-center justify-center gap-2 rounded border border-[#D6AA50] px-3 text-[11px] font-semibold text-[#F4D77B] hover:bg-[#D6AA50]/10"
+            <button
+              type="button"
+              onClick={downloadCsvTemplate}
+              className="flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded border border-[#D6AA50] px-3 text-[11px] font-semibold text-[#F4D77B] hover:bg-[#D6AA50]/10"
             >
               <Download className="h-4 w-4" />
-              Download
-            </a>
+              Download CSV
+            </button>
           </div>
+
           <input
             ref={inputRef}
             type="file"
@@ -111,10 +182,11 @@ export default function BulkUploadMasterDatabase({
             className="sr-only"
             onChange={(event) => chooseFile(event.target.files?.[0])}
           />
+
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="flex min-h-40 w-full cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#D6AA50]/60 bg-[#342315]/45 px-5 text-center transition hover:bg-[#D6AA50]/10"
+            className="flex min-h-36 w-full cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-[#D6AA50]/60 bg-[#342315]/45 px-5 text-center transition hover:bg-[#D6AA50]/10"
           >
             {file ? (
               <>
@@ -133,18 +205,31 @@ export default function BulkUploadMasterDatabase({
                   Choose CSV or Excel file
                 </span>
                 <span className="mt-1 text-[11px] text-[#CDB37A]">
-                  Required columns: name, brand
+                  Required columns: Product Line, Brand
                 </span>
               </>
             )}
           </button>
-          <p className="text-[11px] leading-5 text-[#CDB37A]">
-            Supported columns: name, brand, description, manufacturer, country,
-            price, status. Status can be active, under_review, out_of_stock, or
-            inactive; it defaults to active when omitted.
-          </p>
+
+          <div className="rounded-md border border-[#D6AA50]/20 bg-[#2B1B11] p-3 text-[11px] leading-relaxed text-[#CDB37A]">
+            <div className="mb-1 flex items-center gap-1.5 font-semibold text-[#F1C75B]">
+              <Info className="h-3.5 w-3.5" />
+              Supported Columns & Formatting:
+            </div>
+            <p>
+              • <strong>Required:</strong> Product Line, Brand
+            </p>
+            <p>
+              • <strong>Multiple values:</strong> Separate with <code>|</code> or comma (e.g. UPC Codes: <code>0716103012345|0716103012352</code>, Flavor Notes: <code>cedar|cocoa</code>).
+            </p>
+            <p>
+              • <strong>Other Fields:</strong> Name, Manufacturer, Country, Vitola, Strength, Wrapper, Binder, Filler, Size, Length, Ring Gauge, Pricing, Status.
+            </p>
+          </div>
+
           {error && <p className="text-xs text-red-400">{error}</p>}
-          <div className="grid grid-cols-2 gap-3">
+
+          <div className="grid grid-cols-2 gap-3 pt-1">
             <button
               type="button"
               disabled={pending}
@@ -158,7 +243,7 @@ export default function BulkUploadMasterDatabase({
               disabled={pending}
               className="h-10 cursor-pointer rounded bg-[#D6AA50] text-xs font-semibold text-[#3A2417] hover:bg-[#E7BF69] disabled:opacity-50"
             >
-              {pending ? "Uploading..." : "Upload File"}
+              {pending ? "Uploading & Importing..." : "Upload & Import"}
             </button>
           </div>
         </form>

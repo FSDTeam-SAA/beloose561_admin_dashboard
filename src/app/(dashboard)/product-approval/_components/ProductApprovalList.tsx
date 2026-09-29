@@ -137,9 +137,10 @@ export default function ProductApprovalList() {
                 "Image",
                 "Product",
                 "Brand",
+                "Master / UPC",
+                "Location",
                 "Quantity",
                 "Price",
-                "Submitted",
                 "Status",
                 "Actions",
               ].map((heading) => (
@@ -156,7 +157,7 @@ export default function ProductApprovalList() {
             {isLoading ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="py-12 text-center text-sm text-stone-400"
                 >
                   Loading inventory...
@@ -165,7 +166,7 @@ export default function ProductApprovalList() {
             ) : inventoryQuery.isError ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="py-12 text-center text-sm text-red-400"
                 >
                   {inventoryQuery.error.message}
@@ -174,7 +175,7 @@ export default function ProductApprovalList() {
             ) : !accessToken ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="py-12 text-center text-sm text-red-400"
                 >
                   You are not authorized.
@@ -183,7 +184,7 @@ export default function ProductApprovalList() {
             ) : products.length === 0 ? (
               <tr>
                 <td
-                  colSpan={8}
+                  colSpan={9}
                   className="py-12 text-center text-sm text-stone-400"
                 >
                   No inventory found.
@@ -218,14 +219,41 @@ export default function ProductApprovalList() {
                   <td className="px-6 py-4 text-xs text-stone-400">
                     {product.brand || "—"}
                   </td>
+                  <td className="px-6 py-4 text-xs font-mono text-stone-300">
+                    {(() => {
+                      const mc =
+                        typeof product.masterCigarId === "object"
+                          ? product.masterCigarId
+                          : null;
+                      const upc = mc?.upcCodes?.[0];
+                      return upc ? (
+                        <span
+                          className="text-[#D6AA50]"
+                          title={mc?.upcCodes?.join(", ")}
+                        >
+                          {upc}
+                        </span>
+                      ) : (
+                        <span className="text-stone-500">—</span>
+                      );
+                    })()}
+                  </td>
+                  <td className="px-6 py-4 text-xs text-stone-300">
+                    <span>
+                      {product.shelfName || "—"}
+                      {product.shelfColumn ? ` (Col ${product.shelfColumn})` : ""}
+                    </span>
+                  </td>
                   <td className="px-6 py-4 text-xs text-stone-400">
                     {product.quantity}
                   </td>
                   <td className="px-6 py-4 text-xs font-semibold text-[#cca352]">
                     ${product.price.toLocaleString()}
-                  </td>
-                  <td className="px-6 py-4 text-xs text-stone-500">
-                    {new Date(product.createdAt).toLocaleDateString()}
+                    {typeof product.pricePerBox === "number" && (
+                      <span className="block text-[10px] font-normal text-stone-400">
+                        Box: ${product.pricePerBox.toLocaleString()}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <StatusBadge status={product.status} />

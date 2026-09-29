@@ -20,6 +20,7 @@ import {
   Sparkles,
   Store,
   UserCog,
+  Users,
   Workflow,
   X,
 } from "lucide-react";
@@ -53,11 +54,11 @@ const navigation = [
     href: "/product-approval",
     icon: ClipboardCheck,
   },
-  // {
-  //   name: "User Management",
-  //   href: "/user-management",
-  //   icon: MapPin,
-  // },
+  {
+    name: "Consumers & Users",
+    href: "/user-management",
+    icon: Users,
+  },
   {
     name: "Subscription",
     href: "/subscription",

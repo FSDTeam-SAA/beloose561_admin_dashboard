@@ -31,45 +31,30 @@ export interface Cigar {
   _id: string;
   productLine: string;
   brand: string;
-  estimatedSmokingTime?: string;
-  suggestedRetailPriceEach?: number;
-  suggestedRetailPricePerBox?: number;
   name?: string;
-  discoveryType?: string;
-  wrapper?: string;
-  strength?: string;
-  size?: string;
-  smokingTime?: string;
-  image?: string;
-  description?: string;
+  upcCodes?: string[];
   manufacturer?: string;
   country?: string;
+  originRegion?: string;
+  vitola?: string;
+  thumbnail?: string;
+  tastingNotes?: string;
+  strength?: string;
+  wrapper?: string;
+  binder?: string;
+  filler?: string[];
+  size?: string;
+  length?: string;
+  ringGauge?: number;
+  flavorNotes?: string[];
+  description?: string;
+  whyYoullLikeThis?: string;
+  image?: string;
+  estimatedSmokingTime?: string;
   pairingSuggestions?: string[];
-  quantity?: number;
-  price?: number;
-  isStaffPick?: boolean;
-  staffPickNote?: string;
-  staffPickBy?: string;
-  staffPickAddedAt?: string;
-  isNewArrival?: boolean;
-  arrivalDate?: string;
-  newArrivalNote?: string;
-  autoRemoveDays?: number;
-  newArrivalExpiresAt?: string;
-  isDailyFeatured?: boolean;
-  featuredNote?: string;
-  featuredDate?: string;
-  featuredPrice?: number;
+  suggestedRetailPriceEach?: number;
+  suggestedRetailPricePerBox?: number;
   status?: string;
-  lowStockThreshold?: number;
-  totalSearches?: number;
-  totalViews?: number;
-  lastSoldDate?: string;
-  totalSold?: number;
-  isOnDiscount?: boolean;
-  discountPercentage?: number;
-  discountPrice?: number;
-  discountedAt?: string;
   submittedByRetailer?: string | SubmittedRetailer;
   createdAt: string;
   updatedAt?: string;
@@ -156,10 +141,10 @@ export default function MasterDatabase() {
         throw new Error("Your session has expired. Please sign in again.");
       const response = await fetch(
         editing
-          ? `${getApiBaseUrl()}/master-database/master-database/${editing._id}`
+          ? `${getApiBaseUrl()}/master-database/${editing._id}`
           : `${getApiBaseUrl()}/master-database`,
         {
-          method: editing ? "PUT" : "POST",
+          method: editing ? "PATCH" : "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
@@ -230,7 +215,16 @@ export default function MasterDatabase() {
       return result;
     },
     onSuccess: async (result) => {
-      toast.success(result.message || "Bulk data uploaded successfully.");
+      const summary = result.data as unknown as {
+        totalRows?: number;
+        insertedCount?: number;
+        duplicateSkippedCount?: number;
+        invalidCount?: number;
+      } | undefined;
+      const detailMsg = summary?.totalRows
+        ? ` (${summary.insertedCount ?? 0} added, ${summary.duplicateSkippedCount ?? 0} skipped duplicates, ${summary.invalidCount ?? 0} invalid)`
+        : "";
+      toast.success((result.message || "Bulk data uploaded successfully.") + detailMsg);
       setBulkOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["master-database"] });
     },
@@ -308,8 +302,9 @@ export default function MasterDatabase() {
           <thead className="bg-[#1B1009]">
             <tr>
               {[
-                "Product Line",
+                "Product Line / Name",
                 "Brand",
+                "UPC",
                 "Strength",
                 "Wrapper",
                 "Price Each",
@@ -340,9 +335,26 @@ export default function MasterDatabase() {
                   className="h-[66px] hover:bg-[#4A301D]/45"
                 >
                   <td className="px-6 py-4 text-sm font-medium text-[#F7E4B3]">
-                    {cigar.productLine || cigar.name || "—"}
+                    <div>{cigar.productLine || cigar.name || "—"}</div>
+                    {cigar.name && cigar.productLine && cigar.name !== cigar.productLine && (
+                      <div className="text-xs font-normal text-[#BFA98A]">{cigar.name}</div>
+                    )}
                   </td>
                   <Cell>{cigar.brand}</Cell>
+                  <td className="px-6 py-4 text-xs font-mono text-[#F4D77B]">
+                    {cigar.upcCodes && cigar.upcCodes.length > 0 ? (
+                      <span title={cigar.upcCodes.join(", ")}>
+                        {cigar.upcCodes[0]}
+                        {cigar.upcCodes.length > 1 && (
+                          <span className="ml-1 rounded bg-[#D6AA50]/20 px-1 py-0.5 text-[10px] text-[#D6AA50]">
+                            +{cigar.upcCodes.length - 1}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-[#9A8060]">—</span>
+                    )}
+                  </td>
                   <Cell>{cigar.strength}</Cell>
                   <Cell>{cigar.wrapper}</Cell>
                   <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
@@ -436,7 +448,7 @@ function RowMessage({ text, error }: { text: string; error?: boolean }) {
   return (
     <tr>
       <td
-        colSpan={8}
+        colSpan={9}
         className={`px-6 py-14 text-center text-sm ${error ? "text-red-400" : "text-[#9A8060]"}`}
       >
         {text}
