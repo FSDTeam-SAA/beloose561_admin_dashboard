@@ -1,0 +1,581 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Eye, FileUp, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { signOut, useSession } from "next-auth/react";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import Pagination from "@/components/pagenation/Pagenation";
+import DeleteModal from "@/components/deleteModal/DeleteModal";
+import AddMasterDatabase, { type CigarFormValues } from "./AddMasterDatabase";
+import BulkUploadMasterDatabase from "./BulkUploadMasterDatabase";
+import ViewMasterDatabase from "./ViewMasterDatabase";
+
+export interface SubmittedRetailer {
+  _id: string;
+  userId?: string;
+  storeName?: string;
+  address?: string;
+  phoneNumber?: string;
+  city?: string;
+  description?: string;
+  storeSlug?: string;
+  status?: string;
+  subscriptionPlan?: string;
+  subscriptionStatus?: string;
+  logo?: string;
+}
+
+export interface Cigar {
+  _id: string;
+  productLine: string;
+  brand: string;
+  upcCodes?: string[];
+  name?: string;
+  manufacturer?: string;
+  country?: string;
+  originRegion?: string;
+  vitola?: string;
+  thumbnail?: string;
+  tastingNotes?: string;
+  binder?: string;
+  filler?: string[];
+  length?: string;
+  ringGauge?: number;
+  flavorNotes?: string[];
+  whyYoullLikeThis?: string;
+  estimatedSmokingTime?: string;
+  suggestedRetailPriceEach?: number;
+  suggestedRetailPricePerBox?: number;
+  discoveryType?: string;
+  wrapper?: string;
+  strength?: string;
+  size?: string;
+  smokingTime?: string;
+  image?: string;
+  description?: string;
+  pairingSuggestions?: string[];
+  quantity?: number;
+  price?: number;
+  isStaffPick?: boolean;
+  staffPickNote?: string;
+  staffPickBy?: string;
+  staffPickAddedAt?: string;
+  isNewArrival?: boolean;
+  arrivalDate?: string;
+  newArrivalNote?: string;
+  autoRemoveDays?: number;
+  newArrivalExpiresAt?: string;
+  isDailyFeatured?: boolean;
+  featuredNote?: string;
+  featuredDate?: string;
+  featuredPrice?: number;
+  status?: string;
+  lowStockThreshold?: number;
+  totalSearches?: number;
+  totalViews?: number;
+  lastSoldDate?: string;
+  totalSold?: number;
+  isOnDiscount?: boolean;
+  discountPercentage?: number;
+  discountPrice?: number;
+  discountedAt?: string;
+  submittedByRetailer?: string | SubmittedRetailer;
+  createdAt: string;
+  updatedAt?: string;
+}
+interface ApiResponse {
+  success: boolean;
+  message?: string;
+  errorSources?: { path?: string; message?: string }[];
+  meta?: { page: number; limit: number; total: number };
+  data?: Cigar[] | Cigar;
+}
+const getApiBaseUrl = () => {
+  const url = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+  if (!url) throw new Error("Backend API URL is not configured.");
+  return url.replace(/\/$/, "");
+};
+
+const normalizeAccessToken = (value?: string) =>
+  value
+    ?.trim()
+    .replace(/^["']|["']$/g, "")
+    .replace(/^Bearer\s+/i, "");
+
+const isInvalidTokenError = (message?: string) =>
+  Boolean(
+    message &&
+    /token signature is invalid|invalid signature|jwt malformed|jwt expired|token expired/i.test(
+      message,
+    ),
+  );
+
+function changedFields(values: CigarFormValues, current: Cigar) {
+  return Object.fromEntries(
+    Object.entries(values).filter(
+      ([key, value]) =>
+        JSON.stringify(value) !== JSON.stringify(current[key as keyof Cigar]),
+    ),
+  );
+}
+
+export default function MasterDatabase() {
+  const { data: session } = useSession();
+  const token = normalizeAccessToken(
+    (session?.user as { accessToken?: string } | undefined)?.accessToken,
+  );
+  const queryClient = useQueryClient();
+  const [searchInput, setSearchInput] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filters, setFilters] = useState({
+    brand: "",
+    productLine: "",
+    strength: "",
+    status: "",
+    upcCode: "",
+  });
+  const [page, setPage] = useState(1);
+  const [formOpen, setFormOpen] = useState(false);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [editing, setEditing] = useState<Cigar | null>(null);
+  const [viewing, setViewing] = useState<Cigar | null>(null);
+  const [deleting, setDeleting] = useState<Cigar | null>(null);
+  const limit = 10;
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setSearchTerm(searchInput.trim());
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+  const query = useQuery({
+    queryKey: ["master-database", page, limit, searchTerm, filters],
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(limit),
+        sortBy: "createdAt",
+        sortOrder: "desc",
+      });
+      if (searchTerm) params.set("searchTerm", searchTerm);
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.set(key, value);
+      });
+      const response = await fetch(
+        `${getApiBaseUrl()}/master-database?${params}`,
+      );
+      const result = (await response
+        .json()
+        .catch(() => null)) as ApiResponse | null;
+      if (
+        !response.ok ||
+        !result?.success ||
+        !Array.isArray(result.data) ||
+        !result.meta
+      )
+        throw new Error(result?.message || "Unable to load master database.");
+      return { cigars: result.data, meta: result.meta };
+    },
+  });
+  const saveMutation = useMutation({
+    mutationFn: async (values: CigarFormValues) => {
+      if (!token)
+        throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch(
+        editing
+          ? `${getApiBaseUrl()}/master-database/${editing._id}`
+          : `${getApiBaseUrl()}/master-database`,
+        {
+          method: editing ? "PATCH" : "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(
+            editing ? changedFields(values, editing) : values,
+          ),
+        },
+      );
+      const result = (await response
+        .json()
+        .catch(() => null)) as ApiResponse | null;
+      if (!response.ok || !result?.success) {
+        if (isInvalidTokenError(result?.message)) {
+          await signOut({ callbackUrl: "/signin" });
+          throw new Error(
+            "Your session is no longer valid. Please sign in again.",
+          );
+        }
+        throw new Error(
+          result?.errorSources
+            ?.map((source) => source.message)
+            .filter(Boolean)
+            .join(", ") ||
+            result?.message ||
+            `Unable to ${editing ? "update" : "add"} product.`,
+        );
+      }
+      return result;
+    },
+    onSuccess: async (result) => {
+      toast.success(
+        result.message || (editing ? "Product updated." : "Product added."),
+      );
+      setFormOpen(false);
+      setEditing(null);
+      await queryClient.invalidateQueries({ queryKey: ["master-database"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const bulkUploadMutation = useMutation({
+    mutationFn: async (file: File) => {
+      if (!token)
+        throw new Error("Your session has expired. Please sign in again.");
+      const formData = new FormData();
+      formData.set("file", file);
+      const response = await fetch(
+        `${getApiBaseUrl()}/master-database/bulk-upload`,
+        {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        },
+      );
+      const result = (await response
+        .json()
+        .catch(() => null)) as ApiResponse | null;
+      if (!response.ok || !result?.success) {
+        if (isInvalidTokenError(result?.message)) {
+          await signOut({ callbackUrl: "/signin" });
+          throw new Error(
+            "Your session is no longer valid. Please sign in again.",
+          );
+        }
+        throw new Error(
+          result?.errorSources
+            ?.map((source) => source.message)
+            .filter(Boolean)
+            .join(", ") ||
+            result?.message ||
+            "Unable to upload CSV file.",
+        );
+      }
+      return result;
+    },
+    onSuccess: async (result) => {
+      toast.success(result.message || "Bulk data uploaded successfully.");
+      setBulkOpen(false);
+      await queryClient.invalidateQueries({ queryKey: ["master-database"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      if (!token)
+        throw new Error("Your session has expired. Please sign in again.");
+      const response = await fetch(`${getApiBaseUrl()}/master-database/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = (await response
+        .json()
+        .catch(() => null)) as ApiResponse | null;
+      if (!response.ok || !result?.success)
+        throw new Error(result?.message || "Unable to delete product.");
+      return result;
+    },
+    onSuccess: async (result) => {
+      toast.success(result.message || "Product deleted.");
+      setDeleting(null);
+      await queryClient.invalidateQueries({ queryKey: ["master-database"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+  const cigars = query.data?.cigars || [];
+  return (
+    <div className="flex w-full flex-col gap-5">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          {/* <h1 className="flex items-center gap-3 font-serif text-2xl text-[#F7E4B3]">
+            <Database className="h-6 w-6 text-[#D6AA50]" />
+            Master Database
+          </h1>
+          <p className="mt-1 text-xs text-[#BFA98A]">
+            The central catalog of all cigar products
+          </p> */}
+        </div>
+        <div className="flex flex-row gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setEditing(null);
+              setFormOpen(true);
+            }}
+            className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg bg-[#D6AA50] px-5 text-xs font-semibold text-[#2B1B10] hover:bg-[#E7BF69]"
+          >
+            <Plus className="h-4 w-4" />
+            Add Manually
+          </button>
+          <button
+            type="button"
+            onClick={() => setBulkOpen(true)}
+            className="flex h-11 cursor-pointer items-center justify-center gap-2 rounded-lg border border-[#D6AA50] px-5 text-xs font-semibold text-[#F4D77B] hover:bg-[#D6AA50]/10"
+          >
+            <FileUp className="h-4 w-4" />
+            Add Bulk Data
+          </button>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
+        {(
+          [
+            ["brand", "Brand"],
+            ["productLine", "Product line"],
+            ["strength", "Strength"],
+            ["upcCode", "UPC"],
+          ] as const
+        ).map(([key, label]) => (
+          <Input
+            key={key}
+            value={filters[key]}
+            onChange={(event) => {
+              setFilters((current) => ({
+                ...current,
+                [key]: event.target.value,
+              }));
+              setPage(1);
+            }}
+            placeholder={label}
+            className="h-10 border-[#CBA24A]/25 bg-[#342315]/35 text-xs text-[#F7E4B3] placeholder:text-[#9A8060]"
+          />
+        ))}
+        <select
+          value={filters.status}
+          onChange={(event) => {
+            setFilters((current) => ({
+              ...current,
+              status: event.target.value,
+            }));
+            setPage(1);
+          }}
+          aria-label="Filter by status"
+          className="h-10 rounded-lg border border-[#CBA24A]/25 bg-[#342315]/35 px-3 text-xs text-[#F7E4B3]"
+        >
+          <option value="">All statuses</option>
+          <option value="active">Active</option>
+          <option value="under_review">Under review</option>
+          <option value="out_of_stock">Out of stock</option>
+          <option value="inactive">Inactive</option>
+        </select>
+      </div>
+      <div className="relative w-full max-w-[360px]">
+        <Input
+          type="search"
+          placeholder="Search by name or brand..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          className="h-10 w-full rounded-lg border border-[#CBA24A]/25 bg-[#342315]/35 pl-10 pr-4 text-sm text-[#F7E4B3] placeholder:text-[#9A8060] focus-visible:ring-0"
+        />
+        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[#9A8060]" />
+      </div>
+      <div className="overflow-x-auto rounded-xl border border-[#CBA24A]/30">
+        <table className="w-full min-w-[800px] border-collapse text-left">
+          <thead className="bg-[#1B1009]">
+            <tr>
+              {[
+                "Product Line",
+                "Brand",
+                "UPC",
+                "Strength",
+                "Wrapper",
+                "Price Each",
+                "Price Box",
+                "Status",
+                "Actions",
+              ].map((h) => (
+                <th
+                  key={h}
+                  className={`px-6 py-4 text-xs font-semibold uppercase tracking-wide text-[#BFA98A] ${h === "Actions" ? "text-right" : ""}`}
+                >
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#CBA24A]/20 bg-[#342315]/35">
+            {query.isLoading ? (
+              <RowMessage text="Loading master database..." />
+            ) : query.isError ? (
+              <RowMessage text={query.error.message} error />
+            ) : cigars.length === 0 ? (
+              <RowMessage text="No cigars found." />
+            ) : (
+              cigars.map((cigar, index) => (
+                <tr
+                  key={`${cigar._id}-${index}`}
+                  className="h-[66px] hover:bg-[#4A301D]/45"
+                >
+                  <td className="px-6 py-4 text-sm font-medium text-[#F7E4B3]">
+                    {cigar.productLine || cigar.name || "—"}
+                  </td>
+                  <Cell>{cigar.brand}</Cell>
+                  <Cell>{cigar.upcCodes?.join(", ")}</Cell>
+                  <Cell>{cigar.strength}</Cell>
+                  <Cell>{cigar.wrapper}</Cell>
+                  <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
+                    {typeof cigar.suggestedRetailPriceEach === "number"
+                      ? `$${cigar.suggestedRetailPriceEach.toFixed(2)}`
+                      : "—"}
+                  </td>
+                  <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
+                    {typeof cigar.suggestedRetailPricePerBox === "number"
+                      ? `$${cigar.suggestedRetailPricePerBox.toFixed(2)}`
+                      : "—"}
+                  </td>
+                  <td className="px-6 py-4">
+                    <StatusBadge status={cigar.status} />
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <div className="inline-flex items-center gap-3 text-[#BFA98A]">
+                      <Action label="View" onClick={() => setViewing(cigar)}>
+                        <Eye />
+                      </Action>
+                      <Action
+                        label="Edit"
+                        onClick={() => {
+                          setEditing(cigar);
+                          setFormOpen(true);
+                        }}
+                      >
+                        <Pencil />
+                      </Action>
+                      <Action
+                        label="Delete"
+                        danger
+                        onClick={() => setDeleting(cigar)}
+                      >
+                        <Trash2 />
+                      </Action>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      <Pagination
+        page={page}
+        limit={limit}
+        total={query.data?.meta.total || 0}
+        currentCount={cigars.length}
+        onPageChange={setPage}
+        disabled={query.isFetching}
+      />
+      <AddMasterDatabase
+        open={formOpen}
+        initial={editing}
+        pending={saveMutation.isPending}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setEditing(null);
+        }}
+        onSubmit={(values) => saveMutation.mutate(values)}
+      />
+      <ViewMasterDatabase
+        cigar={viewing}
+        onOpenChange={(open) => !open && setViewing(null)}
+      />
+      <BulkUploadMasterDatabase
+        open={bulkOpen}
+        pending={bulkUploadMutation.isPending}
+        onOpenChange={setBulkOpen}
+        onSubmit={(file) => bulkUploadMutation.mutate(file)}
+      />
+      <DeleteModal
+        open={Boolean(deleting)}
+        title="Delete Product"
+        itemName={deleting?.productLine || deleting?.name}
+        description={
+          deleting
+            ? `Are you sure you want to delete ${deleting.productLine || deleting.name}? This action cannot be undone.`
+            : undefined
+        }
+        disabled={deleteMutation.isPending}
+        onConfirm={() => deleting && deleteMutation.mutate(deleting._id)}
+        onOpenChange={(open) => !open && setDeleting(null)}
+      />
+    </div>
+  );
+}
+
+function RowMessage({ text, error }: { text: string; error?: boolean }) {
+  return (
+    <tr>
+      <td
+        colSpan={8}
+        className={`px-6 py-14 text-center text-sm ${error ? "text-red-400" : "text-[#9A8060]"}`}
+      >
+        {text}
+      </td>
+    </tr>
+  );
+}
+function Cell({
+  children,
+  capitalize,
+}: {
+  children?: React.ReactNode;
+  capitalize?: boolean;
+}) {
+  return (
+    <td
+      className={`px-6 py-4 text-sm text-[#BFA98A] ${capitalize ? "capitalize" : ""}`}
+    >
+      {children || "—"}
+    </td>
+  );
+}
+function StatusBadge({ status = "active" }: { status?: string }) {
+  const normalizedStatus = status.toLowerCase();
+  const style =
+    normalizedStatus === "active"
+      ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
+      : normalizedStatus === "inactive" || normalizedStatus === "out_of_stock"
+        ? "border-red-500/25 bg-red-950/60 text-red-400"
+        : "border-amber-500/25 bg-amber-950/60 text-amber-400";
+
+  return (
+    <span
+      className={`inline-flex whitespace-nowrap rounded-full border px-2.5 py-1 text-[10px] font-medium capitalize ${style}`}
+    >
+      {normalizedStatus.replaceAll("_", " ")}
+    </span>
+  );
+}
+function Action({
+  label,
+  danger,
+  onClick,
+  children,
+}: {
+  label: string;
+  danger?: boolean;
+  onClick: () => void;
+  children: React.ReactElement<{ className?: string }>;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      onClick={onClick}
+      className={`cursor-pointer p-1 ${danger ? "hover:text-red-400" : "hover:text-[#D6AA50]"}`}
+    >
+      {<span className="[&>svg]:h-[18px] [&>svg]:w-[18px]">{children}</span>}
+    </button>
+  );
+}
