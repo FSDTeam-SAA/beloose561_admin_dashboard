@@ -40,7 +40,7 @@ export interface Retailer {
   updatedAt?: string;
   qrCodeUrl?: string;
   logo?: string;
-  location?: { type?: "Point"; coordinates?: [number, number] };
+  location?: { type?: string; coordinates?: [number, number] };
 }
 
 interface RetailerResponse {
@@ -103,6 +103,12 @@ export default function ViewRetailer({
         ["Store Slug", retailer.storeSlug],
         ["GPS Latitude", retailer.location?.coordinates?.[1]?.toString()],
         ["GPS Longitude", retailer.location?.coordinates?.[0]?.toString()],
+        [
+          "GPS Location",
+          retailer.location?.coordinates?.length === 2
+            ? `${retailer.location.coordinates[1].toFixed(4)}, ${retailer.location.coordinates[0].toFixed(4)}`
+            : undefined,
+        ],
         ["Retailer Status", retailer.status],
         ["User Status", retailer.userId?.status],
         ["Verification", retailer.userId?.verfied],

@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { X } from "lucide-react";
+import { MapPin, Tag, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -50,6 +50,8 @@ interface MasterCigar {
   upcCodes?: string[];
   status?: string;
   price?: number;
+  suggestedRetailPriceEach?: number;
+  suggestedRetailPricePerBox?: number;
 }
 
 export interface InventoryItem {
@@ -70,6 +72,7 @@ export interface InventoryItem {
   wallName?: string;
   shelfName: string;
   shelfColumn?: number;
+  shelfRow?: number;
   quantity: number;
   price: number;
   pricePerBox?: number;
@@ -95,7 +98,7 @@ export function StatusBadge({ status }: { status?: string }) {
   const style =
     normalized === "active"
       ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
-      : normalized === "inactive"
+      : normalized === "inactive" || normalized === "out_of_stock"
         ? "border-red-500/25 bg-red-950/60 text-red-400"
         : "border-amber-600/30 bg-amber-950/60 text-amber-400";
   return (
@@ -130,6 +133,12 @@ export default function ViewProduct({
     product?.masterCigarId && typeof product.masterCigarId !== "string"
       ? product.masterCigarId
       : undefined;
+  const locationString = [
+    humidor?.name || "Humidor",
+    product?.wallName ? `Wall: ${product.wallName}` : undefined,
+    product?.shelfName ? `Shelf: ${product.shelfName}` : undefined,
+    typeof product?.shelfColumn === "number" ? `Column: ${product.shelfColumn}` : undefined,
+  ].filter(Boolean).join(" → ");
   const details = product
     ? [
         ["Brand", product.brand],
@@ -137,11 +146,14 @@ export default function ViewProduct({
         ["Wrapper", product.wrapper],
         ["Size", product.size],
         ["Shelf", product.shelfName],
+        ["Exact Location", locationString],
         ["Quantity", String(product.quantity)],
         ["Price", `$${product.price.toLocaleString()}`],
+        ["Price Per Box", typeof product.pricePerBox === "number" ? `$${product.pricePerBox.toLocaleString()}` : "—"],
         ["Low Stock", String(product.lowStockThreshold ?? "—")],
         ["Staff Pick", product.isStaffPick ? "Yes" : "No"],
         ["New Arrival", product.isNewArrival ? "Yes" : "No"],
+        ["Daily Featured", product.isDailyFeatured ? "Yes" : "No"],
       ]
     : [];
 
@@ -191,11 +203,15 @@ export default function ViewProduct({
             <p className="mt-1 truncate text-sm text-[#BFA98A]">
               {product?.brand || "—"}
             </p>
-            <div className="mt-3">
+            <div className="mt-3 flex items-center gap-2">
               <StatusBadge status={product?.status} />
+              {product?.isStaffPick && <span className="rounded bg-[#D6AA50]/20 px-2 py-0.5 text-[10px] font-medium text-[#D6AA50]">Staff Pick</span>}
             </div>
           </div>
         </div>
+        <DetailSection title="Store Physical Location">
+          <div className="flex items-center gap-2 font-mono text-xs text-[#F4D77B]"><MapPin className="h-4 w-4" />{locationString}</div>
+        </DetailSection>
         <dl className="grid grid-cols-2 gap-x-6 gap-y-3 rounded-xl border border-[#CBA24A]/15 p-4">
           {details.map(([label, value]) => (
             <div key={label} className="min-w-0">
@@ -260,9 +276,12 @@ export default function ViewProduct({
 
         {masterCigar && (
           <DetailSection title="Master Database Product">
+            <div className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-[#D6AA50]"><Tag className="h-4 w-4" />Master Cigar Association</div>
             <DetailGrid
               items={[
                 ["Product", masterCigar.name],
+                ["Product Line", masterCigar.productLine],
+                ["UPC Codes", masterCigar.upcCodes?.join(", ")],
                 ["Brand", masterCigar.brand],
                 ["Discovery Type", masterCigar.discoveryType],
                 ["Status", masterCigar.status],

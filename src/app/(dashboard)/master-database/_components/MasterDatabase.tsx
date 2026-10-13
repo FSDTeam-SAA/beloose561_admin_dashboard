@@ -31,56 +31,30 @@ export interface Cigar {
   _id: string;
   productLine: string;
   brand: string;
-  upcCodes?: string[];
   name?: string;
+  upcCodes?: string[];
   manufacturer?: string;
   country?: string;
   originRegion?: string;
   vitola?: string;
   thumbnail?: string;
   tastingNotes?: string;
+  strength?: string;
+  wrapper?: string;
   binder?: string;
   filler?: string[];
+  size?: string;
   length?: string;
   ringGauge?: number;
   flavorNotes?: string[];
+  description?: string;
   whyYoullLikeThis?: string;
+  image?: string;
   estimatedSmokingTime?: string;
+  pairingSuggestions?: string[];
   suggestedRetailPriceEach?: number;
   suggestedRetailPricePerBox?: number;
-  discoveryType?: string;
-  wrapper?: string;
-  strength?: string;
-  size?: string;
-  smokingTime?: string;
-  image?: string;
-  description?: string;
-  pairingSuggestions?: string[];
-  quantity?: number;
-  price?: number;
-  isStaffPick?: boolean;
-  staffPickNote?: string;
-  staffPickBy?: string;
-  staffPickAddedAt?: string;
-  isNewArrival?: boolean;
-  arrivalDate?: string;
-  newArrivalNote?: string;
-  autoRemoveDays?: number;
-  newArrivalExpiresAt?: string;
-  isDailyFeatured?: boolean;
-  featuredNote?: string;
-  featuredDate?: string;
-  featuredPrice?: number;
   status?: string;
-  lowStockThreshold?: number;
-  totalSearches?: number;
-  totalViews?: number;
-  lastSoldDate?: string;
-  totalSold?: number;
-  isOnDiscount?: boolean;
-  discountPercentage?: number;
-  discountPrice?: number;
-  discountedAt?: string;
   submittedByRetailer?: string | SubmittedRetailer;
   createdAt: string;
   updatedAt?: string;
@@ -107,9 +81,9 @@ const normalizeAccessToken = (value?: string) =>
 const isInvalidTokenError = (message?: string) =>
   Boolean(
     message &&
-    /token signature is invalid|invalid signature|jwt malformed|jwt expired|token expired/i.test(
-      message,
-    ),
+      /token signature is invalid|invalid signature|jwt malformed|jwt expired|token expired/i.test(
+        message,
+      ),
   );
 
 function changedFields(values: CigarFormValues, current: Cigar) {
@@ -194,9 +168,7 @@ export default function MasterDatabase() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(
-            editing ? changedFields(values, editing) : values,
-          ),
+          body: JSON.stringify(editing ? changedFields(values, editing) : values),
         },
       );
       const result = (await response
@@ -205,9 +177,7 @@ export default function MasterDatabase() {
       if (!response.ok || !result?.success) {
         if (isInvalidTokenError(result?.message)) {
           await signOut({ callbackUrl: "/signin" });
-          throw new Error(
-            "Your session is no longer valid. Please sign in again.",
-          );
+          throw new Error("Your session is no longer valid. Please sign in again.");
         }
         throw new Error(
           result?.errorSources
@@ -250,9 +220,7 @@ export default function MasterDatabase() {
       if (!response.ok || !result?.success) {
         if (isInvalidTokenError(result?.message)) {
           await signOut({ callbackUrl: "/signin" });
-          throw new Error(
-            "Your session is no longer valid. Please sign in again.",
-          );
+          throw new Error("Your session is no longer valid. Please sign in again.");
         }
         throw new Error(
           result?.errorSources
@@ -266,7 +234,16 @@ export default function MasterDatabase() {
       return result;
     },
     onSuccess: async (result) => {
-      toast.success(result.message || "Bulk data uploaded successfully.");
+      const summary = result.data as unknown as {
+        totalRows?: number;
+        insertedCount?: number;
+        duplicateSkippedCount?: number;
+        invalidCount?: number;
+      } | undefined;
+      const detailMsg = summary?.totalRows
+        ? ` (${summary.insertedCount ?? 0} added, ${summary.duplicateSkippedCount ?? 0} skipped duplicates, ${summary.invalidCount ?? 0} invalid)`
+        : "";
+      toast.success((result.message || "Bulk data uploaded successfully.") + detailMsg);
       setBulkOpen(false);
       await queryClient.invalidateQueries({ queryKey: ["master-database"] });
     },
@@ -276,10 +253,10 @@ export default function MasterDatabase() {
     mutationFn: async (id: string) => {
       if (!token)
         throw new Error("Your session has expired. Please sign in again.");
-      const response = await fetch(`${getApiBaseUrl()}/master-database/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetch(
+        `${getApiBaseUrl()}/master-database/master-database/${id}`,
+        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
+      );
       const result = (await response
         .json()
         .catch(() => null)) as ApiResponse | null;
@@ -342,10 +319,7 @@ export default function MasterDatabase() {
             key={key}
             value={filters[key]}
             onChange={(event) => {
-              setFilters((current) => ({
-                ...current,
-                [key]: event.target.value,
-              }));
+              setFilters((current) => ({ ...current, [key]: event.target.value }));
               setPage(1);
             }}
             placeholder={label}
@@ -355,10 +329,7 @@ export default function MasterDatabase() {
         <select
           value={filters.status}
           onChange={(event) => {
-            setFilters((current) => ({
-              ...current,
-              status: event.target.value,
-            }));
+            setFilters((current) => ({ ...current, status: event.target.value }));
             setPage(1);
           }}
           aria-label="Filter by status"
@@ -386,7 +357,7 @@ export default function MasterDatabase() {
           <thead className="bg-[#1B1009]">
             <tr>
               {[
-                "Product Line",
+                "Product Line / Name",
                 "Brand",
                 "UPC",
                 "Strength",
@@ -419,10 +390,26 @@ export default function MasterDatabase() {
                   className="h-[66px] hover:bg-[#4A301D]/45"
                 >
                   <td className="px-6 py-4 text-sm font-medium text-[#F7E4B3]">
-                    {cigar.productLine || cigar.name || "—"}
+                    <div>{cigar.productLine || cigar.name || "—"}</div>
+                    {cigar.name && cigar.productLine && cigar.name !== cigar.productLine && (
+                      <div className="text-xs font-normal text-[#BFA98A]">{cigar.name}</div>
+                    )}
                   </td>
                   <Cell>{cigar.brand}</Cell>
-                  <Cell>{cigar.upcCodes?.join(", ")}</Cell>
+                  <td className="px-6 py-4 text-xs font-mono text-[#F4D77B]">
+                    {cigar.upcCodes && cigar.upcCodes.length > 0 ? (
+                      <span title={cigar.upcCodes.join(", ")}>
+                        {cigar.upcCodes[0]}
+                        {cigar.upcCodes.length > 1 && (
+                          <span className="ml-1 rounded bg-[#D6AA50]/20 px-1 py-0.5 text-[10px] text-[#D6AA50]">
+                            +{cigar.upcCodes.length - 1}
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="text-[#9A8060]">—</span>
+                    )}
+                  </td>
                   <Cell>{cigar.strength}</Cell>
                   <Cell>{cigar.wrapper}</Cell>
                   <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
@@ -516,7 +503,7 @@ function RowMessage({ text, error }: { text: string; error?: boolean }) {
   return (
     <tr>
       <td
-        colSpan={8}
+        colSpan={9}
         className={`px-6 py-14 text-center text-sm ${error ? "text-red-400" : "text-[#9A8060]"}`}
       >
         {text}
@@ -544,7 +531,8 @@ function StatusBadge({ status = "active" }: { status?: string }) {
   const style =
     normalizedStatus === "active"
       ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
-      : normalizedStatus === "inactive" || normalizedStatus === "out_of_stock"
+      : normalizedStatus === "inactive" ||
+          normalizedStatus === "out_of_stock"
         ? "border-red-500/25 bg-red-950/60 text-red-400"
         : "border-amber-500/25 bg-amber-950/60 text-amber-400";
 

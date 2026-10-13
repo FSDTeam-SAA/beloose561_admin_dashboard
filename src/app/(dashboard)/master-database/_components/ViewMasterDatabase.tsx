@@ -1,6 +1,6 @@
 "use client";
 
-import { Building2, Package, X } from "lucide-react";
+import { Building2, Package, Tag, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +28,8 @@ const formatDate = (value?: string) => {
 
 export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
   const retailer =
-    cigar?.submittedByRetailer && typeof cigar.submittedByRetailer !== "string"
+    cigar?.submittedByRetailer &&
+    typeof cigar.submittedByRetailer !== "string"
       ? cigar.submittedByRetailer
       : null;
   const status = cigar?.status?.toLowerCase() || "active";
@@ -41,36 +42,29 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
 
   const productDetails: Array<[string, string | undefined]> = cigar
     ? [
-        ["Name", cigar.name],
-        ["Product Line", cigar.productLine || cigar.name],
+        ["Product Line", cigar.productLine],
+        ["Cigar Name", cigar.name],
         ["Brand", cigar.brand],
-        ["UPC Codes", cigar.upcCodes?.join(", ")],
         ["Manufacturer", cigar.manufacturer],
-        ["Country", cigar.country],
+        ["Country / Origin", cigar.country],
         ["Origin Region", cigar.originRegion],
         ["Vitola", cigar.vitola],
         ["Size", cigar.size],
-        ["Length", cigar.length],
-        ["Ring Gauge", cigar.ringGauge?.toString()],
+        ["Length", cigar.length ? `${cigar.length}"` : undefined],
+        ["Ring Gauge", cigar.ringGauge ? String(cigar.ringGauge) : undefined],
         ["Strength", cigar.strength],
         ["Wrapper", cigar.wrapper],
         ["Binder", cigar.binder],
         ["Filler", cigar.filler?.join(", ")],
-        ["Flavor Notes", cigar.flavorNotes?.join(", ")],
-        ["Tasting Notes", cigar.tastingNotes],
-        ["Description", cigar.description],
-        ["Why You'll Like This", cigar.whyYoullLikeThis],
-        ["Image", cigar.image],
-        ["Thumbnail", cigar.thumbnail],
         ["Estimated Smoking Time", cigar.estimatedSmokingTime],
         [
-          "Retail Price (Each)",
+          "Suggested Retail Price (Each)",
           typeof cigar.suggestedRetailPriceEach === "number"
             ? `$${cigar.suggestedRetailPriceEach.toFixed(2)}`
             : "—",
         ],
         [
-          "Retail Price (Per Box)",
+          "Suggested Retail Price (Box)",
           typeof cigar.suggestedRetailPricePerBox === "number"
             ? `$${cigar.suggestedRetailPricePerBox.toFixed(2)}`
             : "—",
@@ -81,20 +75,20 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
     : [];
 
   const retailerDetails = retailer
-    ? (
+    ? ([
+        ["Store Name", retailer.storeName],
         [
-          ["Store Name", retailer.storeName],
-          [
-            "Location",
-            [retailer.address, retailer.city].filter(Boolean).join(", "),
-          ],
-          ["Phone Number", retailer.phoneNumber],
-          ["Store Slug", retailer.storeSlug],
-          ["Status", retailer.status],
-          ["Subscription Plan", retailer.subscriptionPlan],
-          ["Subscription Status", retailer.subscriptionStatus],
-        ] satisfies Array<[string, string | undefined]>
-      ).filter(([, value]) => Boolean(value))
+          "Location",
+          [retailer.address, retailer.city].filter(Boolean).join(", "),
+        ],
+        ["Phone Number", retailer.phoneNumber],
+        ["Store Slug", retailer.storeSlug],
+        ["Status", retailer.status],
+        ["Subscription Plan", retailer.subscriptionPlan],
+        ["Subscription Status", retailer.subscriptionStatus],
+      ] satisfies Array<[string, string | undefined]>).filter(([, value]) =>
+        Boolean(value),
+      )
     : [];
 
   return (
@@ -102,11 +96,11 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
       <DialogContent
         showCloseButton={false}
         overlayClassName="bg-black/70 backdrop-blur-sm"
-        className="max-h-[90vh] w-[calc(100%-2rem)] max-w-[650px] gap-4 overflow-y-auto rounded-2xl border border-[#CBA24A]/20 bg-[#4A2D1D] p-5 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]"
+        className="max-h-[90vh] w-[calc(100%-2rem)] max-w-[700px] gap-4 overflow-y-auto rounded-2xl border border-[#CBA24A]/20 bg-[#4A2D1D] p-5 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]"
       >
         <DialogHeader>
           <DialogTitle className="pr-8 font-serif text-xl font-normal text-[#F7E4B3]">
-            Product Details
+            Master Cigar Details
           </DialogTitle>
           <DialogDescription className="sr-only">
             Master database product details
@@ -122,15 +116,24 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
         </button>
 
         <div className="flex items-center gap-4 rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg border border-[#CBA24A]/25 bg-[#342315]">
-            <Package className="h-7 w-7 text-[#D6AA50]" />
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-[#CBA24A]/25 bg-[#342315]">
+            {cigar?.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={cigar.image}
+                alt={cigar.name || cigar.productLine}
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Package className="h-8 w-8 text-[#D6AA50]" />
+            )}
           </div>
           <div className="min-w-0">
             <h3 className="truncate font-serif text-xl text-[#F7E4B3]">
               {cigar?.productLine || cigar?.name || "Unnamed Product"}
             </h3>
             <p className="mt-1 truncate text-sm text-[#BFA98A]">
-              {cigar?.brand || "—"}
+              {cigar?.brand || "—"} {cigar?.name ? `· ${cigar.name}` : ""}
             </p>
             <span
               className={`mt-2 inline-flex rounded-full border px-3 py-1 text-[10px] font-medium capitalize ${statusStyle}`}
@@ -140,9 +143,32 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
           </div>
         </div>
 
+        {/* UPC Codes */}
+        <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#D6AA50]">
+            <Tag className="h-3.5 w-3.5" />
+            <span>UPC Codes ({cigar?.upcCodes?.length || 0})</span>
+          </div>
+          {cigar?.upcCodes && cigar.upcCodes.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {cigar.upcCodes.map((code) => (
+                <span
+                  key={code}
+                  className="rounded border border-[#D6AA50]/40 bg-[#342315] px-2.5 py-1 font-mono text-xs text-[#F4D77B]"
+                >
+                  {code}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-[#A99D91]">No UPC codes registered.</p>
+          )}
+        </section>
+
+        {/* Construction & Product Info */}
         <section className="rounded-xl border border-[#CBA24A]/15 p-4">
           <h4 className="mb-4 text-xs font-semibold uppercase tracking-wider text-[#D6AA50]">
-            Product Information
+            Product Information & Construction
           </h4>
           <dl className="grid grid-cols-1 gap-x-6 gap-y-4 sm:grid-cols-2">
             {productDetails.map(([label, value]) => (
@@ -151,6 +177,56 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
           </dl>
         </section>
 
+        {/* Flavor notes */}
+        {cigar?.flavorNotes && cigar.flavorNotes.length > 0 && (
+          <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
+            <p className="mb-2 text-[10px] uppercase tracking-wider text-[#A99D91]">
+              Flavor Notes
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {cigar.flavorNotes.map((note) => (
+                <span
+                  key={note}
+                  className="rounded-full border border-[#D6AA50]/30 bg-[#3A2417] px-2.5 py-0.5 text-xs text-[#F7E4B3]"
+                >
+                  {note}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {cigar?.tastingNotes && (
+          <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">Tasting Notes</p>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-[#F7E4B3]">{cigar.tastingNotes}</p>
+          </section>
+        )}
+
+        {/* Description & Why You'll Like This */}
+        {cigar?.description && (
+          <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">
+              Description
+            </p>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-[#F7E4B3]">
+              {cigar.description}
+            </p>
+          </section>
+        )}
+
+        {cigar?.whyYoullLikeThis && (
+          <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
+            <p className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">
+              Why You&apos;ll Like This
+            </p>
+            <p className="whitespace-pre-wrap text-sm leading-6 text-[#F7E4B3]">
+              {cigar.whyYoullLikeThis}
+            </p>
+          </section>
+        )}
+
+        {/* Pairing Suggestions */}
         <section className="rounded-xl border border-[#CBA24A]/15 bg-[#241e1a]/70 p-4">
           <p className="mb-1 text-[10px] uppercase tracking-wider text-[#A99D91]">
             Pairing Suggestions
