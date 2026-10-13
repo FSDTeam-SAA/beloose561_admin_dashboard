@@ -7,7 +7,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import Link from "next/link";
 import Image from "next/image";
 import { signIn } from "next-auth/react";
+<<<<<<< HEAD
 import { useRouter, useSearchParams } from "next/navigation";
+=======
+import { useRouter } from "next/navigation";
+>>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
 import { toast } from "sonner";
 
 export default function SignInPage() {
@@ -16,6 +20,7 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+<<<<<<< HEAD
   const searchParams = useSearchParams();
   const requestedCallbackUrl = searchParams.get("callbackUrl");
   const callbackUrl =
@@ -24,6 +29,10 @@ export default function SignInPage() {
       : "/";
 
   const handleSubmit = async (e: FormEvent) => {
+=======
+
+ const handleSubmit = async (e: FormEvent) => {
+>>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
     e.preventDefault();
     try {
       setIsLoading(true);
@@ -32,7 +41,10 @@ export default function SignInPage() {
         email: email.trim(),
         password,
         redirect: false,
+<<<<<<< HEAD
         callbackUrl,
+=======
+>>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       });
 
       if (res?.error) {
@@ -40,7 +52,11 @@ export default function SignInPage() {
       }
 
       toast.success("Login Successfully !");
+<<<<<<< HEAD
       router.replace(callbackUrl);
+=======
+      router.replace("/");
+>>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       router.refresh();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Login failed");
@@ -50,6 +66,7 @@ export default function SignInPage() {
   };
 
   return (
+<<<<<<< HEAD
     <main className="relative fixed inset-0 flex min-h-screen w-full items-center justify-center overflow-y-auto bg-[#140d09] p-4">
       <Image
         src="/images/bg_auth_image.webp"
@@ -62,6 +79,16 @@ export default function SignInPage() {
       />
       {/* সেন্টারড সাইন-ইন কার্ড */}
       <div className="relative z-10 w-full max-w-[550px] rounded-xl border border-[#CBA24A]/80 bg-[#140d09]/20 backdrop-blur-md px-6 py-5 md:px-8 md:py-6 flex flex-col items-center shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+=======
+    <main
+      className="min-h-screen w-full flex items-center justify-center p-4 bg-cover bg-center bg-no-repeat fixed inset-0 overflow-y-auto"
+      style={{
+        backgroundImage: `url('/images/bg_auth_image.png')`,
+      }}
+    >
+      {/* সেন্টারড সাইন-ইন কার্ড */}
+      <div className="relative w-full max-w-[550px] rounded-xl border border-[#CBA24A]/80 bg-[#140d09]/20 backdrop-blur-md px-6 py-5 md:px-8 md:py-6 flex flex-col items-center shadow-[0_8px_32px_rgba(0,0,0,0.45)]">
+>>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
         <div className="relative mb-1 h-[88px] w-[88px] drop-shadow-[0_0_12px_rgba(204,163,82,0.55)] md:h-24 md:w-24">
           <Image
             src="/images/humidor-logo2.png"
