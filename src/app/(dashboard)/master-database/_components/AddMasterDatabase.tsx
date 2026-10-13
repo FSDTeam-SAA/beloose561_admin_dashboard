@@ -222,7 +222,7 @@ export default function AddMasterDatabase({
       <DialogContent
         showCloseButton={false}
         overlayClassName="bg-black/75 backdrop-blur-[2px]"
-        className="max-h-[92vh] w-[calc(100%-1.5rem)] max-w-[680px] gap-0 overflow-hidden rounded-lg border border-[#A67C3D]/70 bg-[#4A2D1D] p-0 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)]"
+        className="grid h-[92dvh] max-h-[840px] w-[calc(100%-1.5rem)] max-w-[980px] grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden rounded-lg border border-[#A67C3D]/70 bg-[#4A2D1D] p-0 text-[#F7E4B3] shadow-[0_24px_90px_rgba(0,0,0,.75)] sm:max-w-[980px]"
       >
         <DialogHeader className="border-b border-[#A67C3D]/35 px-5 pb-4 pt-5">
           <DialogTitle className="font-serif text-xl font-semibold text-[#F1C75B]">
@@ -246,8 +246,9 @@ export default function AddMasterDatabase({
           key={initial?._id || "new"}
           onSubmit={submit}
           noValidate
-          className="grid max-h-[calc(92vh-75px)] grid-cols-1 gap-x-3 gap-y-3 overflow-y-auto px-5 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid-cols-2"
+          className="flex min-h-0 flex-col"
         >
+          <div className="grid min-h-0 flex-1 grid-cols-1 gap-x-3 gap-y-3 overflow-y-auto px-5 py-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:grid-cols-2">
           {/* Section: Basic Information */}
           <div className="col-span-full border-b border-[#A67C3D]/25 pb-1 pt-1 text-xs font-semibold uppercase tracking-wider text-[#D6AA50]">
             Basic Information
@@ -571,7 +572,9 @@ export default function AddMasterDatabase({
             </Select>
           </label>
 
-          <div className="grid grid-cols-2 gap-3 pt-3 sm:col-span-2">
+          </div>
+
+          <div className="grid shrink-0 grid-cols-2 gap-3 border-t border-[#A67C3D]/35 bg-[#4A2D1D] px-5 py-4">
             <button
               type="button"
               disabled={pending}
