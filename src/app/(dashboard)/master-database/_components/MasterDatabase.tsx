@@ -31,7 +31,6 @@ export interface Cigar {
   _id: string;
   productLine: string;
   brand: string;
-<<<<<<< HEAD
   upcCodes?: string[];
   name?: string;
   manufacturer?: string;
@@ -49,12 +48,6 @@ export interface Cigar {
   estimatedSmokingTime?: string;
   suggestedRetailPriceEach?: number;
   suggestedRetailPricePerBox?: number;
-=======
-  estimatedSmokingTime?: string;
-  suggestedRetailPriceEach?: number;
-  suggestedRetailPricePerBox?: number;
-  name?: string;
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
   discoveryType?: string;
   wrapper?: string;
   strength?: string;
@@ -62,11 +55,6 @@ export interface Cigar {
   smokingTime?: string;
   image?: string;
   description?: string;
-<<<<<<< HEAD
-=======
-  manufacturer?: string;
-  country?: string;
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
   pairingSuggestions?: string[];
   quantity?: number;
   price?: number;
@@ -119,7 +107,6 @@ const normalizeAccessToken = (value?: string) =>
 const isInvalidTokenError = (message?: string) =>
   Boolean(
     message &&
-<<<<<<< HEAD
     /token signature is invalid|invalid signature|jwt malformed|jwt expired|token expired/i.test(
       message,
     ),
@@ -134,13 +121,6 @@ function changedFields(values: CigarFormValues, current: Cigar) {
   );
 }
 
-=======
-      /token signature is invalid|invalid signature|jwt malformed|jwt expired|token expired/i.test(
-        message,
-      ),
-  );
-
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
 export default function MasterDatabase() {
   const { data: session } = useSession();
   const token = normalizeAccessToken(
@@ -149,7 +129,6 @@ export default function MasterDatabase() {
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-<<<<<<< HEAD
   const [filters, setFilters] = useState({
     brand: "",
     productLine: "",
@@ -157,8 +136,6 @@ export default function MasterDatabase() {
     status: "",
     upcCode: "",
   });
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
   const [page, setPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [bulkOpen, setBulkOpen] = useState(false);
@@ -175,11 +152,7 @@ export default function MasterDatabase() {
     return () => clearTimeout(timer);
   }, [searchInput]);
   const query = useQuery({
-<<<<<<< HEAD
     queryKey: ["master-database", page, limit, searchTerm, filters],
-=======
-    queryKey: ["master-database", page, limit, searchTerm],
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
     queryFn: async () => {
       const params = new URLSearchParams({
         page: String(page),
@@ -188,12 +161,9 @@ export default function MasterDatabase() {
         sortOrder: "desc",
       });
       if (searchTerm) params.set("searchTerm", searchTerm);
-<<<<<<< HEAD
       Object.entries(filters).forEach(([key, value]) => {
         if (value) params.set(key, value);
       });
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       const response = await fetch(
         `${getApiBaseUrl()}/master-database?${params}`,
       );
@@ -216,28 +186,17 @@ export default function MasterDatabase() {
         throw new Error("Your session has expired. Please sign in again.");
       const response = await fetch(
         editing
-<<<<<<< HEAD
           ? `${getApiBaseUrl()}/master-database/${editing._id}`
           : `${getApiBaseUrl()}/master-database`,
         {
           method: editing ? "PATCH" : "POST",
-=======
-          ? `${getApiBaseUrl()}/master-database/master-database/${editing._id}`
-          : `${getApiBaseUrl()}/master-database`,
-        {
-          method: editing ? "PUT" : "POST",
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-<<<<<<< HEAD
           body: JSON.stringify(
             editing ? changedFields(values, editing) : values,
           ),
-=======
-          body: JSON.stringify(values),
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
         },
       );
       const result = (await response
@@ -246,13 +205,9 @@ export default function MasterDatabase() {
       if (!response.ok || !result?.success) {
         if (isInvalidTokenError(result?.message)) {
           await signOut({ callbackUrl: "/signin" });
-<<<<<<< HEAD
           throw new Error(
             "Your session is no longer valid. Please sign in again.",
           );
-=======
-          throw new Error("Your session is no longer valid. Please sign in again.");
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
         }
         throw new Error(
           result?.errorSources
@@ -295,13 +250,9 @@ export default function MasterDatabase() {
       if (!response.ok || !result?.success) {
         if (isInvalidTokenError(result?.message)) {
           await signOut({ callbackUrl: "/signin" });
-<<<<<<< HEAD
           throw new Error(
             "Your session is no longer valid. Please sign in again.",
           );
-=======
-          throw new Error("Your session is no longer valid. Please sign in again.");
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
         }
         throw new Error(
           result?.errorSources
@@ -325,17 +276,10 @@ export default function MasterDatabase() {
     mutationFn: async (id: string) => {
       if (!token)
         throw new Error("Your session has expired. Please sign in again.");
-<<<<<<< HEAD
       const response = await fetch(`${getApiBaseUrl()}/master-database/${id}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-=======
-      const response = await fetch(
-        `${getApiBaseUrl()}/master-database/master-database/${id}`,
-        { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
-      );
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       const result = (await response
         .json()
         .catch(() => null)) as ApiResponse | null;
@@ -385,7 +329,6 @@ export default function MasterDatabase() {
           </button>
         </div>
       </div>
-<<<<<<< HEAD
       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-5">
         {(
           [
@@ -428,8 +371,6 @@ export default function MasterDatabase() {
           <option value="inactive">Inactive</option>
         </select>
       </div>
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       <div className="relative w-full max-w-[360px]">
         <Input
           type="search"
@@ -447,10 +388,7 @@ export default function MasterDatabase() {
               {[
                 "Product Line",
                 "Brand",
-<<<<<<< HEAD
                 "UPC",
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                 "Strength",
                 "Wrapper",
                 "Price Each",
@@ -484,10 +422,7 @@ export default function MasterDatabase() {
                     {cigar.productLine || cigar.name || "—"}
                   </td>
                   <Cell>{cigar.brand}</Cell>
-<<<<<<< HEAD
                   <Cell>{cigar.upcCodes?.join(", ")}</Cell>
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                   <Cell>{cigar.strength}</Cell>
                   <Cell>{cigar.wrapper}</Cell>
                   <td className="px-6 py-4 text-sm font-medium text-[#D6AA50]">
@@ -609,12 +544,7 @@ function StatusBadge({ status = "active" }: { status?: string }) {
   const style =
     normalizedStatus === "active"
       ? "border-emerald-500/25 bg-emerald-950/60 text-emerald-400"
-<<<<<<< HEAD
       : normalizedStatus === "inactive" || normalizedStatus === "out_of_stock"
-=======
-      : normalizedStatus === "inactive" ||
-          normalizedStatus === "out_of_stock"
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
         ? "border-red-500/25 bg-red-950/60 text-red-400"
         : "border-amber-500/25 bg-amber-950/60 text-amber-400";
 

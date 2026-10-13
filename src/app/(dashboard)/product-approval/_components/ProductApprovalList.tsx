@@ -35,13 +35,9 @@ export default function ProductApprovalList() {
   const [searchInput, setSearchInput] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-<<<<<<< HEAD
   const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(
     null,
   );
-=======
-  const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(null);
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -81,7 +77,6 @@ export default function ProductApprovalList() {
   });
 
   const statusMutation = useMutation({
-<<<<<<< HEAD
     mutationFn: async ({
       product,
       status,
@@ -91,10 +86,6 @@ export default function ProductApprovalList() {
     }) => {
       if (!accessToken)
         throw new Error("Your session has expired. Please sign in again.");
-=======
-    mutationFn: async ({ product, status }: { product: InventoryItem; status: "active" | "inactive" }) => {
-      if (!accessToken) throw new Error("Your session has expired. Please sign in again.");
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       const response = await fetch(
         `${getApiBaseUrl()}/inventory/${product._id}/status`,
         {
@@ -122,7 +113,6 @@ export default function ProductApprovalList() {
     },
     onSuccess: async ({ result, product, status }) => {
       await queryClient.invalidateQueries({ queryKey: ["inventory"] });
-<<<<<<< HEAD
       await queryClient.invalidateQueries({
         queryKey: ["inventory-details", product._id],
       });
@@ -136,14 +126,6 @@ export default function ProductApprovalList() {
         error instanceof Error
           ? error.message
           : "Unable to update product status.",
-=======
-      await queryClient.invalidateQueries({ queryKey: ["inventory-details", product._id] });
-      toast.success(result.message || `Product ${status === "active" ? "approved" : "rejected"} successfully.`);
-    },
-    onError: (error: unknown) =>
-      toast.error(
-        error instanceof Error ? error.message : "Unable to update product status.",
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       ),
   });
 
@@ -171,17 +153,12 @@ export default function ProductApprovalList() {
                 "Image",
                 "Product",
                 "Brand",
-<<<<<<< HEAD
                 "Master Cigar / UPC",
                 "Retailer",
                 "Quantity",
                 "Price",
                 "Price / Box",
                 "Location",
-=======
-                "Quantity",
-                "Price",
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                 "Submitted",
                 "Status",
                 "Actions",
@@ -199,11 +176,7 @@ export default function ProductApprovalList() {
             {isLoading ? (
               <tr>
                 <td
-<<<<<<< HEAD
                   colSpan={11}
-=======
-                  colSpan={8}
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                   className="py-12 text-center text-sm text-stone-400"
                 >
                   Loading inventory...
@@ -212,11 +185,7 @@ export default function ProductApprovalList() {
             ) : inventoryQuery.isError ? (
               <tr>
                 <td
-<<<<<<< HEAD
                   colSpan={11}
-=======
-                  colSpan={8}
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                   className="py-12 text-center text-sm text-red-400"
                 >
                   {inventoryQuery.error.message}
@@ -225,11 +194,7 @@ export default function ProductApprovalList() {
             ) : !accessToken ? (
               <tr>
                 <td
-<<<<<<< HEAD
                   colSpan={11}
-=======
-                  colSpan={8}
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                   className="py-12 text-center text-sm text-red-400"
                 >
                   You are not authorized.
@@ -238,11 +203,7 @@ export default function ProductApprovalList() {
             ) : products.length === 0 ? (
               <tr>
                 <td
-<<<<<<< HEAD
                   colSpan={11}
-=======
-                  colSpan={8}
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                   className="py-12 text-center text-sm text-stone-400"
                 >
                   No inventory found.
@@ -278,7 +239,6 @@ export default function ProductApprovalList() {
                     {product.brand || "—"}
                   </td>
                   <td className="px-6 py-4 text-xs text-stone-400">
-<<<<<<< HEAD
                     {typeof product.masterCigarId === "string"
                       ? "—"
                       : [
@@ -295,14 +255,11 @@ export default function ProductApprovalList() {
                       : product.retailerId?.storeName || "—"}
                   </td>
                   <td className="px-6 py-4 text-xs text-stone-400">
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                     {product.quantity}
                   </td>
                   <td className="px-6 py-4 text-xs font-semibold text-[#cca352]">
                     ${product.price.toLocaleString()}
                   </td>
-<<<<<<< HEAD
                   <td className="px-6 py-4 text-xs font-semibold text-[#cca352]">
                     {product.pricePerBox?.toLocaleString() || "—"}
                   </td>
@@ -320,8 +277,6 @@ export default function ProductApprovalList() {
                       .filter(Boolean)
                       .join(" → ") || "—"}
                   </td>
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                   <td className="px-6 py-4 text-xs text-stone-500">
                     {new Date(product.createdAt).toLocaleDateString()}
                   </td>
@@ -338,28 +293,20 @@ export default function ProductApprovalList() {
                       >
                         <Eye className="h-[18px] w-[18px]" />
                       </button>
-<<<<<<< HEAD
                       {product.status
                         ?.toLowerCase()
                         .replaceAll(" ", "_")
                         .replaceAll("-", "_") === "under_review" ? (
-=======
-                      {product.status?.toLowerCase().replaceAll(" ", "_").replaceAll("-", "_") === "under_review" ? (
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                         <>
                           <button
                             type="button"
                             disabled={statusMutation.isPending}
-<<<<<<< HEAD
                             onClick={() =>
                               statusMutation.mutate({
                                 product,
                                 status: "active",
                               })
                             }
-=======
-                            onClick={() => statusMutation.mutate({ product, status: "active" })}
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                             title="Approve Product"
                             className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-emerald-500/25 bg-emerald-950/50 px-2.5 text-[10px] font-semibold text-emerald-400 transition hover:bg-emerald-900/60 disabled:cursor-not-allowed disabled:opacity-50"
                           >
@@ -368,16 +315,12 @@ export default function ProductApprovalList() {
                           <button
                             type="button"
                             disabled={statusMutation.isPending}
-<<<<<<< HEAD
                             onClick={() =>
                               statusMutation.mutate({
                                 product,
                                 status: "inactive",
                               })
                             }
-=======
-                            onClick={() => statusMutation.mutate({ product, status: "inactive" })}
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                             title="Reject Product"
                             className="inline-flex h-8 cursor-pointer items-center gap-1.5 rounded-md border border-red-500/25 bg-red-950/50 px-2.5 text-[10px] font-semibold text-red-400 transition hover:bg-red-900/60 disabled:cursor-not-allowed disabled:opacity-50"
                           >

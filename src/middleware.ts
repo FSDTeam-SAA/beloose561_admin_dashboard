@@ -18,17 +18,12 @@ export async function middleware(request: NextRequest) {
     cookieName: SESSION_COOKIE_NAME,
   });
 
-<<<<<<< HEAD
-  // `getToken` returns null for a missing, expired, or invalid session cookie.
-  // A valid admin JWT is enough to keep the user in the dashboard; requiring
-  // the backend access token here caused valid NextAuth sessions to be treated
-  // as logged out when that optional claim was unavailable.
-  const isAuthenticated = token?.role === "admin";
-=======
-  const isAuthenticated = Boolean(
-    token && token.role === "admin" && token.accessToken,
-  );
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
+  // The NextAuth session and backend token are issued together.  Do not let a
+  // partial session reach the dashboard: its API queries would all fail with
+  // an empty Authorization header and appear as an empty dashboard.
+  const accessToken =
+    typeof token?.accessToken === "string" ? token.accessToken.trim() : "";
+  const isAuthenticated = token?.role === "admin" && Boolean(accessToken);
 
   if (PUBLIC_AUTH_ROUTES.has(pathname)) {
     if (isAuthenticated && pathname === "/signin") {

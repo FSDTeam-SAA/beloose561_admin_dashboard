@@ -5,12 +5,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-<<<<<<< HEAD
   pages: {
     signIn: "/signin",
   },
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
   session: {
     strategy: "jwt",
     maxAge: 7 * 24 * 60 * 60, // 7 days
@@ -111,7 +108,6 @@ export const authOptions: NextAuthOptions = {
       };
       return session;
     },
-<<<<<<< HEAD
 
     async redirect({ url, baseUrl }) {
       // Only allow redirects within this dashboard. This also lets middleware
@@ -120,7 +116,5 @@ export const authOptions: NextAuthOptions = {
       if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
   },
 };

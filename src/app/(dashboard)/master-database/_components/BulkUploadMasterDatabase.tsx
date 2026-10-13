@@ -39,13 +39,9 @@ export default function BulkUploadMasterDatabase({
   const chooseFile = (selected?: File) => {
     if (!selected) return;
     const fileName = selected.name.toLowerCase();
-<<<<<<< HEAD
     if (
       !supportedExtensions.some((extension) => fileName.endsWith(extension))
     ) {
-=======
-    if (!supportedExtensions.some((extension) => fileName.endsWith(extension))) {
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       setFile(null);
       setError("Please select a CSV, XLSX, or XLS file.");
       return;
@@ -102,11 +98,7 @@ export default function BulkUploadMasterDatabase({
               </p>
             </div>
             <a
-<<<<<<< HEAD
               href="/images/Humidor411_Full_Master_Admin_Upload_Template.xlsx"
-=======
-              href="/images/Humidor411-MasterDatabase.xlsx"
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
               download="Humidor411-MasterDatabase.xlsx"
               className="flex h-9 shrink-0 items-center justify-center gap-2 rounded border border-[#D6AA50] px-3 text-[11px] font-semibold text-[#F4D77B] hover:bg-[#D6AA50]/10"
             >
@@ -143,26 +135,16 @@ export default function BulkUploadMasterDatabase({
                   Choose CSV or Excel file
                 </span>
                 <span className="mt-1 text-[11px] text-[#CDB37A]">
-<<<<<<< HEAD
                   Required columns: Product Line, Brand
-=======
-                  Required columns: name, brand
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                 </span>
               </>
             )}
           </button>
           <p className="text-[11px] leading-5 text-[#CDB37A]">
-<<<<<<< HEAD
             Upload the full Master Cigar template: Product Line, Brand, UPC
             Codes, Name, manufacturer, origin, wrapper, filler, flavor notes,
             pricing, images, and status. Array fields accept comma or pipe
             separators.
-=======
-            Supported columns: name, brand, description, manufacturer, country,
-            price, status. Status can be active, under_review, out_of_stock, or
-            inactive; it defaults to active when omitted.
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
           </p>
           {error && <p className="text-xs text-red-400">{error}</p>}
           <div className="grid grid-cols-2 gap-3">

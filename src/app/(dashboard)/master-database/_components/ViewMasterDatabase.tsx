@@ -28,12 +28,7 @@ const formatDate = (value?: string) => {
 
 export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
   const retailer =
-<<<<<<< HEAD
     cigar?.submittedByRetailer && typeof cigar.submittedByRetailer !== "string"
-=======
-    cigar?.submittedByRetailer &&
-    typeof cigar.submittedByRetailer !== "string"
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       ? cigar.submittedByRetailer
       : null;
   const status = cigar?.status?.toLowerCase() || "active";
@@ -46,7 +41,6 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
 
   const productDetails: Array<[string, string | undefined]> = cigar
     ? [
-<<<<<<< HEAD
         ["Name", cigar.name],
         ["Product Line", cigar.productLine || cigar.name],
         ["Brand", cigar.brand],
@@ -68,12 +62,6 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
         ["Why You'll Like This", cigar.whyYoullLikeThis],
         ["Image", cigar.image],
         ["Thumbnail", cigar.thumbnail],
-=======
-        ["Product Line", cigar.productLine || cigar.name],
-        ["Brand", cigar.brand],
-        ["Strength", cigar.strength],
-        ["Wrapper", cigar.wrapper],
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
         ["Estimated Smoking Time", cigar.estimatedSmokingTime],
         [
           "Retail Price (Each)",
@@ -93,7 +81,6 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
     : [];
 
   const retailerDetails = retailer
-<<<<<<< HEAD
     ? (
         [
           ["Store Name", retailer.storeName],
@@ -108,22 +95,6 @@ export default function ViewMasterDatabase({ cigar, onOpenChange }: Props) {
           ["Subscription Status", retailer.subscriptionStatus],
         ] satisfies Array<[string, string | undefined]>
       ).filter(([, value]) => Boolean(value))
-=======
-    ? ([
-        ["Store Name", retailer.storeName],
-        [
-          "Location",
-          [retailer.address, retailer.city].filter(Boolean).join(", "),
-        ],
-        ["Phone Number", retailer.phoneNumber],
-        ["Store Slug", retailer.storeSlug],
-        ["Status", retailer.status],
-        ["Subscription Plan", retailer.subscriptionPlan],
-        ["Subscription Status", retailer.subscriptionStatus],
-      ] satisfies Array<[string, string | undefined]>).filter(([, value]) =>
-        Boolean(value),
-      )
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
     : [];
 
   return (

@@ -21,7 +21,6 @@ import type { Cigar } from "./MasterDatabase";
 export type CigarFormValues = {
   productLine: string;
   brand: string;
-<<<<<<< HEAD
   upcCodes?: string[];
   name?: string;
   manufacturer?: string;
@@ -41,10 +40,6 @@ export type CigarFormValues = {
   description?: string;
   whyYoullLikeThis?: string;
   image?: string;
-=======
-  strength?: string;
-  wrapper?: string;
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
   estimatedSmokingTime?: string;
   pairingSuggestions?: string[];
   suggestedRetailPriceEach?: number;
@@ -116,13 +111,7 @@ export default function AddMasterDatabase({
   useEffect(() => {
     if (!open) return;
     setPairings(
-<<<<<<< HEAD
       initial?.pairingSuggestions?.length ? initial.pairingSuggestions : [""],
-=======
-      initial?.pairingSuggestions?.length
-        ? initial.pairingSuggestions
-        : [""],
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
     );
   }, [initial, open]);
 
@@ -146,7 +135,6 @@ export default function AddMasterDatabase({
 
     if (!productLine) nextErrors.productLine = "Product line is required.";
     if (!brand) nextErrors.brand = "Brand is required.";
-<<<<<<< HEAD
     if (
       eachValue &&
       (!Number.isFinite(suggestedRetailPriceEach) ||
@@ -159,12 +147,6 @@ export default function AddMasterDatabase({
       (!Number.isFinite(suggestedRetailPricePerBox) ||
         suggestedRetailPricePerBox! < 0)
     ) {
-=======
-    if (eachValue && (!Number.isFinite(suggestedRetailPriceEach) || suggestedRetailPriceEach! < 0)) {
-      nextErrors.suggestedRetailPriceEach = "Enter a valid price of 0 or more.";
-    }
-    if (boxValue && (!Number.isFinite(suggestedRetailPricePerBox) || suggestedRetailPricePerBox! < 0)) {
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
       nextErrors.suggestedRetailPricePerBox =
         "Enter a valid box price of 0 or more.";
     }
@@ -173,7 +155,6 @@ export default function AddMasterDatabase({
       return;
     }
 
-<<<<<<< HEAD
     const text = (name: string) =>
       String(data.get(name) || "").trim() || undefined;
     const list = (name: string) =>
@@ -190,13 +171,10 @@ export default function AddMasterDatabase({
       return;
     }
 
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
     setErrors({});
     onSubmit({
       productLine,
       brand,
-<<<<<<< HEAD
       upcCodes: list("upcCodes"),
       name: text("name"),
       manufacturer: text("manufacturer"),
@@ -223,16 +201,6 @@ export default function AddMasterDatabase({
       status: String(
         data.get("status") || "active",
       ) as CigarFormValues["status"],
-=======
-      strength: String(data.get("strength") || "").trim() || undefined,
-      wrapper: String(data.get("wrapper") || "").trim() || undefined,
-      estimatedSmokingTime:
-        String(data.get("estimatedSmokingTime") || "").trim() || undefined,
-      pairingSuggestions: pairings.map((item) => item.trim()).filter(Boolean),
-      suggestedRetailPriceEach,
-      suggestedRetailPricePerBox,
-      status: String(data.get("status") || "active") as CigarFormValues["status"],
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
     });
   };
 
@@ -282,7 +250,6 @@ export default function AddMasterDatabase({
             defaultValue={initial?.brand}
             error={errors.brand}
           />
-<<<<<<< HEAD
           <Field name="name" label="Name" defaultValue={initial?.name} />
           <Field
             name="upcCodes"
@@ -366,8 +333,6 @@ export default function AddMasterDatabase({
               className={` h-20 resize-y py-2`}
             />
           </label>
-=======
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
           <SelectField
             name="strength"
             label="Strength"
@@ -409,13 +374,9 @@ export default function AddMasterDatabase({
           <label className={labelClass}>
             <span>Status</span>
             <Select name="status" defaultValue={initial?.status || "active"}>
-<<<<<<< HEAD
               <SelectTrigger
                 className={`${inputClass} shadow-none focus-visible:ring-0`}
               >
-=======
-              <SelectTrigger className={`${inputClass} shadow-none focus-visible:ring-0`}>
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                 <SelectValue />
               </SelectTrigger>
               <SelectContent
@@ -447,13 +408,9 @@ export default function AddMasterDatabase({
                     <SelectTrigger
                       className={`${inputClass} shadow-none focus-visible:ring-0`}
                     >
-<<<<<<< HEAD
                       <SelectValue
                         placeholder={`Select pairing ${index + 1}`}
                       />
-=======
-                      <SelectValue placeholder={`Select pairing ${index + 1}`} />
->>>>>>> ee93f6b7996d1fdce3d25b1bbac6cd33ff75f8d1
                     </SelectTrigger>
                     <SelectContent
                       position="popper"
