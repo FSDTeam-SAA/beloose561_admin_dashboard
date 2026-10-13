@@ -19,60 +19,6 @@ interface Props {
 
 const supportedExtensions = [".csv", ".xlsx", ".xls"];
 
-const templateHeaders = [
-  "Product Line",
-  "Brand",
-  "UPC Codes",
-  "Name",
-  "Manufacturer",
-  "Country",
-  "Origin Region",
-  "Vitola",
-  "Strength",
-  "Wrapper",
-  "Binder",
-  "Filler",
-  "Size",
-  "Length",
-  "Ring Gauge",
-  "Flavor Notes",
-  "Description",
-  "Why You'll Like This",
-  "Image",
-  "Estimated Smoking Time",
-  "Pairing Suggestions",
-  "Suggested Retail Price (Each)",
-  "Suggested Retail Price (Box)",
-  "Status",
-];
-
-const sampleRow = [
-  "Gran Reserva",
-  "Arturo Fuente",
-  "0716103012345|0716103012352",
-  "Gran Reserva Robusto",
-  "Tabacalera A. Fuente",
-  "Dominican Republic",
-  "Santiago",
-  "Robusto",
-  "Medium",
-  "Ecuadorian Habano",
-  "Dominican",
-  "Dominican|Nicaraguan",
-  "5 x 50",
-  "5.0",
-  "50",
-  "cedar|cocoa|leather",
-  "Premium handmade cigar with rich Dominican fillers.",
-  "Smooth and balanced flavor profile perfect for any occasion.",
-  "https://example.com/cigar.jpg",
-  "60",
-  "Cigar + Coffee / Espresso|Cigar + Whiskey",
-  "18.50",
-  "185.00",
-  "active",
-];
-
 export default function BulkUploadMasterDatabase({
   open,
   pending,
@@ -109,22 +55,6 @@ export default function BulkUploadMasterDatabase({
       return;
     }
     onSubmit(file);
-  };
-
-  const downloadCsvTemplate = () => {
-    const csvContent =
-      "data:text/csv;charset=utf-8," +
-      [
-        templateHeaders.map((h) => `"${h}"`).join(","),
-        sampleRow.map((v) => `"${v}"`).join(","),
-      ].join("\n");
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "Humidor411-MasterDatabase-Template.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   return (
@@ -165,14 +95,14 @@ export default function BulkUploadMasterDatabase({
                 Includes all 24 master fields (UPC, vitola, filler, pricing, etc.)
               </p>
             </div>
-            <button
-              type="button"
-              onClick={downloadCsvTemplate}
+            <a
+              href="/images/Humidor411_Full_Master_Admin_Upload_Template.xlsx"
+              download="Humidor411_Full_Master_Admin_Upload_Template.xlsx"
               className="flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded border border-[#D6AA50] px-3 text-[11px] font-semibold text-[#F4D77B] hover:bg-[#D6AA50]/10"
             >
               <Download className="h-4 w-4" />
-              Download CSV
-            </button>
+              Download Excel
+            </a>
           </div>
 
           <input
